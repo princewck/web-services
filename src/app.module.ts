@@ -8,16 +8,21 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { WepayController } from './wepay/wepay.controller';
+import { WepayService } from './wepay/wepay.service';
+import { WepayModule } from './wepay/wepay.module';
 
 @Module({
   imports: [
     AuthModule, UsersModule,
+    WepayModule,
     TypeOrmModule.forRoot({
       autoLoadEntities: true,
-    })
+    }),
+    WepayModule
   ],
-  controllers: [AppController],
-  providers: [AppService, UsersService],
+  controllers: [AppController, WepayController],
+  providers: [AppService, UsersService, WepayService],
 })
 export class AppModule implements NestModule {
 
