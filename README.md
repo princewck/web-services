@@ -1,3 +1,13 @@
+# 这是一个什么项目
+- 封装各种 web 应用的基础能力, 即插即用
+
+# 规划中的功能
+- 微信支持
+- 支付宝支付
+- 微信登陆
+- 小程序第三方开发
+- ...
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
 </p>
