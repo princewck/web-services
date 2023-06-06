@@ -35,3 +35,4 @@ lerna-debug.log*
 
 # typeorm
 ormconfig.js
+src/config.js
