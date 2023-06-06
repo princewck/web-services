@@ -1,4 +1,4 @@
-import { All, Controller, Post, Request } from '@nestjs/common';
+import { All, Controller, Param, Post, Request } from '@nestjs/common';
 import { WepayService } from './wepay.service';
 
 @Controller('wechat')
@@ -16,5 +16,11 @@ export class WepayController {
   @All('wxpay/pay')
   payCallback(@Request() req) {
     return this.wepayService.payCallback(req);
+  }
+
+  @Post('session')
+  login(@Param() params) {
+    console.log('params', params);
+    return params;
   }
 }
