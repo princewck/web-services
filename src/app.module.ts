@@ -9,14 +9,10 @@ import { UsersModule } from './users/users.module';
 
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WepayController } from './wepay/wepay.controller';
-import { WepayService } from './wepay/wepay.service';
 import { WepayModule } from './wepay/wepay.module';
 import { ConfigModule } from '@nestjs/config';
-import { existsSync } from 'fs';
-import { resolve } from 'path';
 import { GlobalModule } from './global/global.module';
-
-const configFileExists = existsSync(resolve(__dirname, './config.js'));
+import configuration from './config';
 
 
 @Module({
@@ -26,7 +22,10 @@ const configFileExists = existsSync(resolve(__dirname, './config.js'));
     TypeOrmModule.forRoot({
       autoLoadEntities: true,
     }),
-    ConfigModule.forRoot({ isGlobal: true, load: configFileExists ? require('./config') : undefined }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+    }),
     GlobalModule,
   ],
   controllers: [AppController, WepayController],

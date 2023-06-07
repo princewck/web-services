@@ -29,7 +29,7 @@ export type WechatOrderCreatePayload = {
   support_fapiao?: boolean;
   amount: {
     total: number;
-    currency: string;
+    currency?: string;
   };
   payer: {
     openid: string;
@@ -44,3 +44,20 @@ export type WechatOrderCreatePayload = {
     profit_sharing?: boolean;
   }
 };
+
+export type WechatOrderCreateRequetPayload = Pick<WechatOrderCreatePayload, 'description' | 'out_trade_no' | 'amount'>
+
+export type WechatCode2SessionPayload = {
+  appid: string;
+  secret: string;
+  js_code: string;
+  grant_type: string;
+};
+
+export type WechatCode2SessionResponse = {
+  session_key: string;
+  unionid: string;
+  errmsg: string;
+  openid: string;
+  errcode: number;
+}

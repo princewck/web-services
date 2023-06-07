@@ -35,4 +35,5 @@ lerna-debug.log*
 
 # typeorm
 ormconfig.js
-src/config.js
+src/config.ts
+apiclient_cert.ts
