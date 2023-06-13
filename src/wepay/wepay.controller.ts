@@ -11,7 +11,8 @@ export class WepayController {
 
   @Post('wxpay/order')
   createOrder(@Request() req) {
-    const { description, out_trade_no = Date.now().toString(), total = 9999999 } = req.body;
+    // FIXME: openid should be removed later
+    const { description, out_trade_no = Date.now().toString(), total = 9999999, openid } = req.body;
     console.log('req.body', req.body);
     const payload: WechatOrderCreateRequetPayload = {
       description,
@@ -21,12 +22,12 @@ export class WepayController {
         currency: 'CNY'
       },
     };
-    return this.wepayService.create(payload);
+    return this.wepayService.create(payload, openid);
   }
 
-  @All('wxpay/pay')
+  @Post('wxpay/callback')
   payCallback(@Request() req) {
-    return this.wepayService.payCallback(req);
+    return this.wepayService.payCallback(req.body);
   }
 
   @Post('session')

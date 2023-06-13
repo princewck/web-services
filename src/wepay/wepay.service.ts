@@ -8,7 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { catchError, first } from 'rxjs/operators';
 import { Rsa, RSA2 } from '../utils/rsa';
 import { JSAPI_CREATE_ORDER, JSCODE_TO_SESSION } from './constants';
-import { WechatCode2SessionPayload, WechatCode2SessionResponse, WechatOrderCreatePayload, WechatOrderCreateRequetPayload } from './types';
+import { WechatCode2SessionPayload, WechatCode2SessionResponse, WechatOrderCreatePayload, WechatOrderCreateRequetPayload, WXPaymentCallbackResponse } from './types';
 
 @Injectable()
 export class WepayService {
@@ -20,8 +20,9 @@ export class WepayService {
   ) { }
 
 
-  async create(payload: WechatOrderCreateRequetPayload) {
-    const openId = this.getUserOpenId();
+  async create(payload: WechatOrderCreateRequetPayload, openid: string) {
+    // FIX: remove open id params
+    const openId = openid || this.getUserOpenId();
     const randomOrderId = 'wck-' + Date.now();
     const notifyURL = this.configService.get('WXPAY_NOTIFY_URL');
     const totalAmount = +Number(Math.random()).toFixed(2);
@@ -53,10 +54,14 @@ export class WepayService {
       first(),
     ));
     this.logger.log(res.data, res.status, res.statusText);
-    return res.data;
+    const { prepay_id } = res.data;
+    return await this.getPaySignature(prepay_id);
   }
 
-  payCallback(data) {
+  // 微信支付成功回调
+  payCallback(data): WXPaymentCallbackResponse {
+    console.log('支付结果', data);
+    // TODO: decrypt the data;
     return data;
   }
 
@@ -89,10 +94,25 @@ export class WepayService {
     if (['PUT', 'POST'].includes(method) && body) {
       struct.push(JSON.stringify(body));
     }
-    const structStr = struct.map(item => item + '\n').join('');
-    const cert = this.configService.get('WXPAY_APICLIENT_CERT');
-    const encrypted = Rsa.sign(structStr, cert);
-    return encrypted;
+    return this.commonSignWithArrayValue(struct);
+  }
+
+  private getPaySignature(prepayId: string) {
+    const appid = this.configService.get('WX_APP_ID');
+    const timeStamp = Math.floor(Date.now() / 1000) + '';
+    const nonceStr = this.getNonceStr();
+    const pkg = `prepay_id=${prepayId}`;
+    const signType = 'RSA';
+    const paySign = this.commonSignWithArrayValue([
+      appid, timeStamp, nonceStr, pkg,
+    ]);
+    return {
+      timeStamp,
+      nonceStr,
+      package: pkg,
+      signType,
+      paySign
+    }
   }
 
   private getAuthorization(method: string, URL: string, body: any) {
@@ -100,10 +120,21 @@ export class WepayService {
     const mchid = this.configService.get('WXPAY_MCHID');
     const serialNo = this.configService.get('WXPAY_SERIAL_NO');
     const timestamp = Math.floor(Date.now() / 1000);
-    const nonceStr = Math.floor(Math.random() * 10000) + '';
+    const nonceStr = this.getNonceStr();
     const signature = this.wepaySign(method, timestamp, nonceStr, URL, body);
     console.log('signature', signature);
     return authType + ' ' + [`mchid="${mchid}"`, `serial_no="${serialNo}"`, `timestamp="${timestamp}"`, `nonce_str="${nonceStr}"`, `signature="${signature}"`].join(',');
+  }
+
+  
+  private getNonceStr() {
+    return Math.floor(Math.random() * 10000) + '';
+  }
+
+  private commonSignWithArrayValue(values: string[]) {
+    const structStr = values.map(item => item + '\n').join('');
+    const cert = this.configService.get('WXPAY_APICLIENT_CERT');
+    return Rsa.sign(structStr, cert);
   }
 
 }
