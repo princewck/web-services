@@ -1,6 +1,6 @@
 import { All, Controller, Param, Post, Request } from '@nestjs/common';
 import { WechatOrderCreateRequetPayload } from './types';
-import { WepayService } from './wepay.service';
+import { WepayService } from './wechat.service';
 
 @Controller('wechat')
 export class WepayController {
@@ -22,7 +22,7 @@ export class WepayController {
         currency: 'CNY'
       },
     };
-    return this.wepayService.create(payload, openid);
+    return this.wepayService.createPayment(payload, openid);
   }
 
   @Post('wxpay/callback')

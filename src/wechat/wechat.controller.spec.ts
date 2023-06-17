@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { WepayController } from './wepay.controller';
+import { WepayController } from './wechat.controller';
 
 describe('Wepay Controller', () => {
   let controller: WepayController;

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { WepayController } from './wepay.controller';
-import { WepayService } from './wepay.service';
+import { WepayController } from './wechat.controller';
+import { WepayService } from './wechat.service';
 
 @Module({
   providers: [WepayService],
