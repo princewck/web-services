@@ -1,14 +1,13 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, RequestMethod } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AxiosError } from 'axios';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 import { firstValueFrom } from 'rxjs';
 import { catchError, first } from 'rxjs/operators';
-import { Rsa, RSA2 } from '../utils/rsa';
+import { Rsa } from '../utils/rsa';
 import { JSAPI_CREATE_ORDER, JSCODE_TO_SESSION } from './constants';
-import { WechatCode2SessionPayload, WechatCode2SessionResponse, WechatOrderCreatePayload, WechatOrderCreateRequetPayload, WXPaymentCallbackResponse } from './types';
+import { WechatCode2SessionPayload, WechatCode2SessionResponse, WechatOrderCreatePayload, WechatOrderCreateRequetPayload, WXPaymentCallbackEncryptedResponse, WXPaymentCallbackResponse } from './types';
+import { createDecipheriv } from 'crypto';
 
 @Injectable()
 export class WepayService {
@@ -20,7 +19,7 @@ export class WepayService {
   ) { }
 
 
-  async create(payload: WechatOrderCreateRequetPayload, openid: string) {
+  async createPayment(payload: WechatOrderCreateRequetPayload, openid: string) {
     // FIX: remove open id params
     const openId = openid || this.getUserOpenId();
     const randomOrderId = 'wck-' + Date.now();
@@ -59,12 +58,43 @@ export class WepayService {
   }
 
   // 微信支付成功回调
-  payCallback(data): WXPaymentCallbackResponse {
-    console.log('支付结果', data);
-    // TODO: decrypt the data;
-    return data;
+  payCallback(data: WXPaymentCallbackEncryptedResponse): WXPaymentCallbackResponse {
+    if (!data || !data.resource) throw new Error('invalid callback data');
+    //https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_5_5.shtml
+    const { resource: { ciphertext, nonce, associated_data, algorithm } } = data;
+    const key = this.configService.get('WXPAY_APIV3_SECRET');
+
+    // decryption refer to https://github.com/klover2/wechatpay-node-v3-ts/blob/master/index.ts
+    const AUTH_KEY_LENGTH = 16;
+    const keyBytes = Buffer.from(key, 'utf-8');
+    const nonceBytes = Buffer.from(nonce, 'utf-8');
+    const associatedDataBytes = Buffer.from(associated_data, 'utf-8');
+    const ciphertextBytes = Buffer.from(ciphertext, 'base64');
+    const cipherDataLength = ciphertextBytes.length - AUTH_KEY_LENGTH;
+    const cipherDataBytes = ciphertextBytes.slice(0, cipherDataLength);
+    const authTagBytes = ciphertextBytes.slice(cipherDataLength);
+    const decipher = createDecipheriv('aes-256-gcm', keyBytes, nonceBytes);
+    decipher.setAuthTag(authTagBytes);
+    decipher.setAutoPadding();
+    decipher.setAAD(Buffer.from(associatedDataBytes));
+    const outputText = Buffer.concat([
+      decipher.update(cipherDataBytes),
+      decipher.final(),
+    ]).toString('utf-8');
+    let result: WXPaymentCallbackResponse;
+    try {
+      result = JSON.parse(outputText);
+    } catch (e) {
+      throw new HttpException({
+        code: 'FAIL',
+        message: '失败',
+      }, 403);
+    }
+    console.log(result);
+    return result;
   }
 
+  // use client-side code to login, get open_id and session_key
   async createSession(code: string) {
     const params: WechatCode2SessionPayload = {
       appid: this.configService.get('WX_APP_ID'),
@@ -126,7 +156,7 @@ export class WepayService {
     return authType + ' ' + [`mchid="${mchid}"`, `serial_no="${serialNo}"`, `timestamp="${timestamp}"`, `nonce_str="${nonceStr}"`, `signature="${signature}"`].join(',');
   }
 
-  
+
   private getNonceStr() {
     return Math.floor(Math.random() * 10000) + '';
   }
@@ -136,5 +166,4 @@ export class WepayService {
     const cert = this.configService.get('WXPAY_APICLIENT_CERT');
     return Rsa.sign(structStr, cert);
   }
-
 }

@@ -62,7 +62,7 @@ export type WechatCode2SessionResponse = {
   errcode: number;
 }
 
-export type WXPaymentCallbackResponse = {
+export type WXPaymentCallbackEncryptedResponse = {
   id: string;
   create_time: string;
   resource_type: string;
@@ -74,5 +74,69 @@ export type WXPaymentCallbackResponse = {
     ciphertext: string;
     associated_data: string;
     nonce: string;
+  }
+}
+
+export enum TRADE_TYPE {
+  JSAPI = 'JSAPI',
+  NATIVE = 'NATIVE',
+  APP = 'APP',
+  MICROPAY = 'MICROPAY',
+  MWEB = 'MWEB',
+  FACEPAY = 'FACEPAY',
+}
+
+export enum TRADE_STATE {
+  SUCCESS = 'SUCCESS',
+  REFUND = 'REFUND',
+  NOTPAY = 'NOTPAY',
+  CLOSED = 'CLOSED',
+  REVOKED = 'REVOKED',
+  USERPAYING = 'USERPAYING',
+  PAYERROR = 'PAYERROR',
+}
+
+export type WXPaymentCallbackResponse = {
+  appid: string;
+  mchid: string;
+  out_trade_no: string;
+  transaction_id: string;
+  trade_type: TRADE_TYPE;
+  trade_state: TRADE_STATE,
+  trade_state_desc: string;
+  // banks https://pay.weixin.qq.com/wiki/doc/apiv3/terms_definition/chapter1_1_3.shtml#part-6
+  bank_type: string;
+  attach: string;
+  success_time: string;
+  payer: {
+    openid: string;
+  },
+  amount: {
+    total: number;
+    currency: number;
+    payer_total?: number;
+    payer_currency?: string;
+  },
+  scene_info?: {
+    device_id?: string;
+  },
+  promotion_detail?: {
+    coupon_id: string;
+    name?: string;
+    scope?: 'GLOBAL' | 'SINGLE';
+    type?: 'CASH' | 'NOCASH';
+    amount: number;
+    stock_id?: string;
+    wechatpay_contribute?: number; // 微信出资, 单位:分,
+    merchant_contribute?: number; // 商户出资
+    other_contribute?: number; // 其他出资
+    currency?: string;
+    goods_detail?: {
+      goods_id: string;
+      quantity: number;
+      unit_price: number;
+      discount_amount: number;
+      goods_remark?: string;
+    }[]
   }
 }
