@@ -5,13 +5,20 @@ import { map } from 'rxjs/operators';
 @Injectable()
 export class PayloadInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const ctx = context.switchToHttp();
+    const res = ctx.getResponse();
     return next
       .handle()
       .pipe(
-        map((value) => ({
-          success: true,
-          data: value,
-        })),
+        map((value) => {
+          if (res.status == 200) {
+            return {
+              data: value,
+              message: 'failed',
+            };
+          }
+          return value;
+        }),
       );
   }
 }

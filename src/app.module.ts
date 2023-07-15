@@ -14,6 +14,7 @@ import { ConfigModule } from '@nestjs/config';
 import { GlobalModule } from './global/global.module';
 import configuration from './config';
 
+import { GptModule } from './gpt/gpt.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import configuration from './config';
       load: [configuration],
     }),
     GlobalModule,
+    GptModule,
   ],
   controllers: [AppController, WepayController],
   providers: [AppService, UsersService],

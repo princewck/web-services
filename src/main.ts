@@ -13,6 +13,6 @@ async function bootstrap() {
   app.useGlobalInterceptors(new PayloadInterceptor());
   app.useGlobalInterceptors(new PostStatusInterceptor());
   app.use(CookieParser('secret'));
-  await app.listen(3006);
+  await app.listen(3006, '0.0.0.0');
 }
 bootstrap();

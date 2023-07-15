@@ -5,5 +5,6 @@ export default () => ({
   WXPAY_APICLIENT_CERT: 'YOUR SECRET',
   WX_APP_ID: 'xxxxxxxx',
   WX_APP_SECRET: 'xxxxxxx',
+  OPENAI_API_KEY: 'OPENAI_API_KEY',
 });
 
