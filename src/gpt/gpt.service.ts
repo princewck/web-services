@@ -10,7 +10,7 @@ import { get } from 'socks5-http-client';
 export class GptService {
 
   private readonly logger = new Logger(GptService.name);
-
+  private history: any[] = [];
   private openai: OpenAIApi;
 
   constructor(private readonly httpService: HttpService, private readonly configService: ConfigService) {
@@ -23,11 +23,14 @@ export class GptService {
   async prompt(params: any) {
     console.log('params', params);
     const { model = 'gpt-3.5-turbo', content } = params;
+    const messages = this.history.concat([{ role: "user", content }]);
     const chatCompletion = await this.openai.createChatCompletion({
       model,
-      messages: [{ role: "user", content }],
+      messages,
     }, { timeout: 30000 });
+    console.log('messages', messages);
     const result = chatCompletion.data.choices[0].message;
+    this.history.push(result);
     return result;
   }
 
