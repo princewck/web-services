@@ -1,10 +1,11 @@
 import { HttpService } from '@nestjs/axios';
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { HttpException, Injectable, Logger, MessageEvent } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Configuration, OpenAIApi } from 'openai';
-import { catchError, firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, interval, map, Observable, Subject, take, takeUntil } from 'rxjs';
 import { OPENAI_LIST_MODELS } from './constants';
 import { get } from 'socks5-http-client';
+import { error } from 'console';
 
 @Injectable()
 export class GptService {
@@ -20,18 +21,51 @@ export class GptService {
     this.openai = new OpenAIApi(configuration);
   }
 
-  async prompt(params: any) {
-    console.log('params', params);
+  prompt(params: any): Observable<MessageEvent> {
+    const { model = 'gpt-3.5-turbo', messages } = params;
+    // const messages = this.history.concat([{ role: "user", content }]);
+    const $end = new Subject();
+    return new Observable<MessageEvent>((subscriber) => {
+      const res = this.openai.createChatCompletion({
+        model,
+        messages,
+        stream: true,
+      }, { timeout: 30000, responseType: 'stream' }).then((chatCompletion: any) => {
+        const stream = chatCompletion.data;
+        stream.on('error', error => {
+          console.error(error);
+        });
+        stream.on('data', (data) => {
+          const lines = data.toString().split('\n').filter(line => line.trim() !== '');
+          console.log('lines', lines);
+          for (const line of lines) {
+            const message = line.replace(/^data: /, '');
+            console.log('message', message);
+            if (message === '[DONE]') {
+              $end.next('end');
+              return;
+            }
+            try {
+              const parsed = JSON.parse(message);
+              subscriber.next({ data: parsed });
+            } catch (error) {
+              console.error('Could not JSON parse stream message', message, error);
+            }
+          }
+        });
+      }, (e) => {
+        console.error(e);
+      });
+    }).pipe(takeUntil($end));
+  }
+
+  async prompt2(params: any) {
     const { model = 'gpt-3.5-turbo', content } = params;
-    const messages = this.history.concat([{ role: "user", content }]);
-    const chatCompletion = await this.openai.createChatCompletion({
+    const completion = await this.openai.createChatCompletion({
       model,
-      messages,
-    }, { timeout: 30000 });
-    console.log('messages', messages);
-    const result = chatCompletion.data.choices[0].message;
-    this.history.push(result);
-    return result;
+      messages: this.history.concat([{ role: "user", content }]),
+    }, { timeout: 60000 });
+    return completion.data.choices[0].message;
   }
 
   async models() {
