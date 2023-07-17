@@ -46,8 +46,7 @@ export class GptService {
               return;
             }
             try {
-              const parsed = JSON.parse(message);
-              subscriber.next({ data: parsed });
+              subscriber.next({ data: message });
             } catch (error) {
               console.error('Could not JSON parse stream message', message, error);
             }
