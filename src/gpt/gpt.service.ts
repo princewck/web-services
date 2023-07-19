@@ -4,8 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { Configuration, OpenAIApi } from 'openai';
 import { catchError, firstValueFrom, interval, map, Observable, Subject, take, takeUntil } from 'rxjs';
 import { OPENAI_LIST_MODELS } from './constants';
-import { get } from 'socks5-http-client';
-import { error } from 'console';
 
 @Injectable()
 export class GptService {
