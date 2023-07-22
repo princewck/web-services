@@ -24,7 +24,8 @@
     "migration:prod": "NODE_ENV=production ts-node ./node_modules/typeorm/cli.js migration:run",
     "migration:prod:revert": "NODE_ENV=production ts-node ./node_modules/typeorm/cli.js migration:revert",
     "seed:dev": "NODE_ENV=development ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
-    "seed:prod": "NODE_ENV=production ts-node ./node_modules/typeorm-seeding/dist/cli.js seed"
+    "seed:prod": "NODE_ENV=production ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
+    "gen-model": "npx typeorm-model-generator"
   },
   "dependencies": {
     "@nestjs/axios": "^1.0.0",
@@ -32,11 +33,14 @@
     "@nestjs/config": "^1.0.0",
     "@nestjs/core": "^8.0.0",
     "@nestjs/jwt": "^10.0.3",
+    "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^8.0.0",
     "@nestjs/platform-express": "^8.0.0",
     "@nestjs/typeorm": "8.0.2",
     "axios": "1.2.1",
     "chalk": "^3.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
     "cookie-parser": "^1.4.5",
     "date-fns": "^2.11.1",
     "jsrsasign": "^10.8.6",
@@ -67,12 +71,14 @@
     "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-import": "^2.20.1",
     "jest": "^25.1.0",
+    "mysql2": "^3.5.2",
     "prettier": "^1.19.1",
     "supertest": "^4.0.2",
     "ts-jest": "25.2.1",
     "ts-loader": "^6.2.1",
     "ts-node": "^8.6.2",
     "tsconfig-paths": "^3.9.0",
+    "typeorm-model-generator": "^0.4.6-no-engines",
     "typescript": "^5.1.3"
   },
   "jest": {

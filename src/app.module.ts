@@ -15,6 +15,7 @@ import { GlobalModule } from './global/global.module';
 import configuration from './config';
 
 import { GptModule } from './gpt/gpt.module';
+import { GptTemplateModule } from './gpt-template/gpt-template.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { GptModule } from './gpt/gpt.module';
     }),
     GlobalModule,
     GptModule,
+    GptTemplateModule,
   ],
   controllers: [AppController, WepayController],
   providers: [AppService, UsersService],

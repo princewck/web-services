@@ -35,5 +35,8 @@ lerna-debug.log*
 
 # typeorm
 ormconfig.js
+**/ormconfig.json
 src/config.ts
 apiclient_cert.ts
+# type-orm-model-generator config file
+.tomg-config 

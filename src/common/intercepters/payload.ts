@@ -1,6 +1,7 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { PaginateList } from '../../utils/PaginateList';
 
 @Injectable()
 export class PayloadInterceptor implements NestInterceptor {
@@ -11,10 +12,18 @@ export class PayloadInterceptor implements NestInterceptor {
       .handle()
       .pipe(
         map((value) => {
-          if (res.status == 200) {
+          if (res.statusCode !== 200) {
             return {
               data: value,
               message: 'failed',
+            };
+          }
+          if (value instanceof PaginateList) {
+            return {
+              page: Number(value.page),
+              total: Number(value.total),
+              items: value.items,
+              pageSize: Number(value.pageSize),
             };
           }
           return value;
