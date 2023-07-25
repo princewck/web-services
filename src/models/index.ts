@@ -4,3 +4,5 @@ export { Doctor } from './doctor.entity';
 export { GptTemplates } from './entities/GptTemplates';
 export { GptConversationHistory } from './entities/GptConversationHistory';
 export { GptConversations } from './entities/GptConversations';
+export { ToolCategories } from './entities/ToolCategories';
+export { Tools } from './entities/Tools';

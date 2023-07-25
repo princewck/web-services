@@ -16,6 +16,8 @@ import configuration from './config';
 
 import { GptModule } from './gpt/gpt.module';
 import { GptTemplateModule } from './gpt-template/gpt-template.module';
+import { ToolCategoryModule } from './tool-category/tool-category.module';
+import { ToolsModule } from './tools/tools.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { GptTemplateModule } from './gpt-template/gpt-template.module';
     GlobalModule,
     GptModule,
     GptTemplateModule,
+    ToolCategoryModule,
+    ToolsModule,
   ],
   controllers: [AppController, WepayController],
   providers: [AppService, UsersService],
