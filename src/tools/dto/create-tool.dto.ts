@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, IsString } from "class-validator";
 
 export class CreateToolDto {
   @IsNotEmpty()
@@ -9,8 +9,10 @@ export class CreateToolDto {
   @IsString()
   public key: string;
 
-  @IsString()
   public description: string;
 
   public icon: string;
+
+  @IsNumber()
+  public categoryId: number;
 }

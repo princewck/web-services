@@ -18,12 +18,12 @@ export class ToolCategoryService {
   }
 
   async findAll(page = 1, pageSize = DEFAULT_PAGE_SIZE, filter = {}) {
-    const [templates, total] = await this.categoryRepository.findAndCount({
+    const [categories, total] = await this.categoryRepository.findAndCount({
       skip: (page - 1) * pageSize,
       take: pageSize,
       where: {},
     });
-    return new PaginateList({ data: templates, total, pageSize, page });
+    return new PaginateList({ data: categories, total, pageSize, page });
   }
 
   async findOne(id: number) {

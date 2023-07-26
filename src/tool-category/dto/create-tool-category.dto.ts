@@ -13,9 +13,6 @@ export class CreateToolCategoryDto {
   @IsString()
   public description: string;
 
-  @IsString()
-  public categoryId: number;
-
   public icon: string;
 
 }

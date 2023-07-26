@@ -1,11 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ToolsService } from './tools.service';
 import { CreateToolDto } from './dto/create-tool.dto';
 import { UpdateToolDto } from './dto/update-tool.dto';
 
 @Controller('/admin/tools')
 export class ToolsController {
-  constructor(private readonly toolsService: ToolsService) {}
+  constructor(private readonly toolsService: ToolsService) { }
 
   @Post()
   create(@Body() createToolDto: CreateToolDto) {
@@ -13,8 +13,9 @@ export class ToolsController {
   }
 
   @Get()
-  findAll() {
-    return this.toolsService.findAll();
+  findAll(@Query('page') page, @Query('pageSize') pageSize, @Query('cid') cid) {
+    console.log('cid', cid);
+    return this.toolsService.findAll(page, pageSize, cid ? { categoryId: +cid } : void 0);
   }
 
   @Get(':id')
