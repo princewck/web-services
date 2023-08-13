@@ -16,6 +16,6 @@ async function bootstrap() {
   app.use(CookieParser('secret'));
   app.enableCors({ origin: 'http://127.0.0.1:5173' });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  await app.listen(3006, '0.0.0.0');
+  await app.listen(process.env.NODE_ENV === 'development' ? 3006 : 3000, '0.0.0.0');
 }
 bootstrap();
