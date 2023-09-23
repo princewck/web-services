@@ -4,14 +4,14 @@ import { AuthGuard } from '@nestjs/passport';
 import { LocalAuthGuard } from '../auth/local-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Controller()
+@Controller('admin')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService
   ) {}
 
   @UseGuards(JwtAuthGuard)
-  @Get('users')
+  @Get('')
   getProdile(@Request() req) {
     return this.usersService.findAll();
   }
