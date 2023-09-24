@@ -8,7 +8,7 @@ import { randomBytes, createHash } from 'crypto';
 import { promisify } from 'util';
 // import { JwtService } from '@nestjs/jwt';
 import { encryptPwd } from '../utils';
-import { USERNAME_EXISTS } from './constants';
+import { REGISTER_ERROR_USERNAME_EXISTS } from './constants';
 
 @Injectable()
 export class ClientsService {
@@ -22,7 +22,7 @@ export class ClientsService {
     const exists = await this.findByUsername(createClientDto.username);
     console.log('exists', exists);
     if (exists) {
-      throw new HttpException({ message: USERNAME_EXISTS }, 400);
+      throw new HttpException({ message: REGISTER_ERROR_USERNAME_EXISTS }, 400);
     }
     const salt = (await promisify(randomBytes)(10)).toString('hex');
     createClientDto.salt = salt;
@@ -40,7 +40,7 @@ export class ClientsService {
   }
 
   findByUsername(username: string) {
-    return this.usersRepository.find({ username });
+    return this.usersRepository.findOne({ username });
   }
 
   update(id: number, updateClientDto: UpdateClientDto) {
