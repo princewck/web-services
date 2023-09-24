@@ -10,3 +10,5 @@ export const isPwdCorrect = (input: string, salt: string, realPwdEncrypted: stri
   const inputEncrypted = encryptPwd(input, salt);
   return inputEncrypted === realPwdEncrypted;
 }
+
+export const isDev = process.env.NODE_ENV === 'development';

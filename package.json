@@ -30,6 +30,8 @@
     "gen-model": "npx typeorm-model-generator"
   },
   "dependencies": {
+    "@alicloud/dysmsapi20170525": "2.0.24",
+    "@alicloud/openapi-client": "^0.4.6",
     "@nestjs/axios": "^1.0.0",
     "@nestjs/common": "^8.0.0",
     "@nestjs/config": "^1.0.0",

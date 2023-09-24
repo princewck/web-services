@@ -19,6 +19,11 @@ import { GptTemplateModule } from './gpt-template/gpt-template.module';
 import { ToolCategoryModule } from './tool-category/tool-category.module';
 import { ToolsModule } from './tools/tools.module';
 import { ClientsModule } from './clients/clients.module';
+import { AliyunService } from './aliyun/aliyun.service';
+import { TestModule } from './test/test.module';
+import { isDev } from './utils';
+
+console.log('isDev', isDev);
 
 @Module({
   imports: [
@@ -37,9 +42,10 @@ import { ClientsModule } from './clients/clients.module';
     ToolCategoryModule,
     ToolsModule,
     ClientsModule,
+    ...(isDev ? [TestModule] : []),
   ],
   controllers: [AppController, WepayController],
-  providers: [AppService, UsersService],
+  providers: [AppService, UsersService, AliyunService],
 })
 export class AppModule implements NestModule {
 
