@@ -931,6 +931,14 @@
   resolved "https://registry.npmmirror.com/@types/estree/-/estree-0.0.51.tgz#cfd70924a25a3fd32b218e5e420e6897e1ac4f40"
   integrity sha512-CuPgU6f3eT/XgKKPqKd/gLZV1Xmvf1a2R5POBOGQa6uv82xpls89HU5zKeVoyR8XzHd1RGNOlQlvUe3CFkjWNQ==
 
+"@types/express-mysql-session@^3.0.1":
+  version "3.0.1"
+  resolved "https://registry.npmmirror.com/@types/express-mysql-session/-/express-mysql-session-3.0.1.tgz#593eded301bd321f7e70ff9118df4cb64d070c75"
+  integrity sha512-t60EAXl6MPjiIB9qNlQW6cjq6DkJwX1lyBGL4GpYanmkSEoHq40Jw7DJFGDfToIbDwRcD2Pc3xQur+KkwYtA9w==
+  dependencies:
+    "@types/express-session" "*"
+    mysql2 "3.2.0"
+
 "@types/express-serve-static-core@^4.17.33", "@types/express-serve-static-core@^4.17.35":
   version "4.17.35"
   resolved "https://registry.npmmirror.com/@types/express-serve-static-core/-/express-serve-static-core-4.17.35.tgz#c95dd4424f0d32e525d23812aa8ab8e4d3906c4f"
@@ -941,7 +949,7 @@
     "@types/range-parser" "*"
     "@types/send" "*"
 
-"@types/express-session@^1.17.8":
+"@types/express-session@*", "@types/express-session@^1.17.8":
   version "1.17.8"
   resolved "https://registry.npmmirror.com/@types/express-session/-/express-session-1.17.8.tgz#e676575a661732e6f34048a6bc130a1867f9612f"
   integrity sha512-bFF7/3wOldMn+56XyFRGY9ZzCr3JWhNSP2ajMPgTlbZR6BQOCHdAbNA9W5dMBPgMywpIP4zkmhxP6Opm/NRYMQ==
@@ -2417,19 +2425,19 @@ debug@2.6.9, debug@^2.2.0, debug@^2.3.3:
   dependencies:
     ms "2.0.0"
 
+debug@4.3.4, debug@^4.0.1, debug@^4.1.0, debug@^4.1.1, debug@^4.3.1, debug@^4.3.4:
+  version "4.3.4"
+  resolved "https://registry.npmmirror.com/debug/-/debug-4.3.4.tgz#1319f6579357f2338d3337d2cdd4914bb5dcc865"
+  integrity sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==
+  dependencies:
+    ms "2.1.2"
+
 debug@^3.1.0, debug@^3.2.7:
   version "3.2.7"
   resolved "https://registry.npmmirror.com/debug/-/debug-3.2.7.tgz#72580b7e9145fb39b6676f9c5e5fb100b934179a"
   integrity sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==
   dependencies:
     ms "^2.1.1"
-
-debug@^4.0.1, debug@^4.1.0, debug@^4.1.1, debug@^4.3.1, debug@^4.3.4:
-  version "4.3.4"
-  resolved "https://registry.npmmirror.com/debug/-/debug-4.3.4.tgz#1319f6579357f2338d3337d2cdd4914bb5dcc865"
-  integrity sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==
-  dependencies:
-    ms "2.1.2"
 
 decamelize@^1.2.0:
   version "1.2.0"
@@ -3002,6 +3010,14 @@ expect@^25.5.0:
     jest-matcher-utils "^25.5.0"
     jest-message-util "^25.5.0"
     jest-regex-util "^25.2.6"
+
+express-mysql-session@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.npmmirror.com/express-mysql-session/-/express-mysql-session-3.0.0.tgz#933a671cb8dab340fdec05e69b8cee749a9c7d93"
+  integrity sha512-P+13IRUGC09HMSogHhuDKcWRofRuK9CQTSAgcheLemAEBYqzygv0mHRTQT/sdpFET6Zm6Zf8G+QsX8UdtDhKSA==
+  dependencies:
+    debug "4.3.4"
+    mysql2 "3.2.0"
 
 express-session@^1.17.3:
   version "1.17.3"
@@ -5088,6 +5104,20 @@ mute-stream@0.0.8:
   version "0.0.8"
   resolved "https://registry.npmmirror.com/mute-stream/-/mute-stream-0.0.8.tgz#1630c42b2251ff81e2a283de96a5497ea92e5e0d"
   integrity sha512-nnbWWOkoWyUsTjKrhgD0dcz22mdkSnpYqbEjIm2nhwhuxlSkpywJmBo8h0ZqJdkp73mb90SssHkN4rsRaBAfAA==
+
+mysql2@3.2.0:
+  version "3.2.0"
+  resolved "https://registry.npmmirror.com/mysql2/-/mysql2-3.2.0.tgz#3613a8903bcb7ade0ae35b29945a0378eb67da89"
+  integrity sha512-0Vn6a9WSrq6fWwvPgrvIwnOCldiEcgbzapVRDAtDZ4cMTxN7pnGqCTx8EG32S/NYXl6AXkdO+9hV1tSIi/LigA==
+  dependencies:
+    denque "^2.1.0"
+    generate-function "^2.3.1"
+    iconv-lite "^0.6.3"
+    long "^5.2.1"
+    lru-cache "^7.14.1"
+    named-placeholders "^1.1.3"
+    seq-queue "^0.0.5"
+    sqlstring "^2.3.2"
 
 mysql2@^3.5.2:
   version "3.5.2"

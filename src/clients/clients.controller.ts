@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, Session, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, Session, Request, UseGuards, Res } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { ClientLoginDto } from './dto/login.dto';
 import { isPwdCorrect } from '../utils';
-import { USER_NOT_EXISTS } from './constants';
+import { COMMON_LOGIN_ERROR, USER_NOT_EXISTS } from './constants';
+import { ClientAuthGuard } from '../auth/client-auth.guard';
+import { Response } from 'express';
+import { COOKIE_MAX_AGE_MILL_SECS } from '../constants';
 
 @Controller('users')
 export class ClientsController {
@@ -19,25 +22,36 @@ export class ClientsController {
   async login(
     @Body() loginDto: ClientLoginDto,
     @Session() session: Record<string, any>,
-    @Request() req
+    @Res({ passthrough: true }) response: Response
   ) {
     const user = await this.clientsService.findByUsername(loginDto.username);
-    console.log('user', user);
     if (!user) {
       throw new HttpException(USER_NOT_EXISTS, 403);
     }
-    const isCorrect = isPwdCorrect(loginDto.username, user.salt, user.password);
-    console.log('session', req.session.user);
+    const isCorrect = isPwdCorrect(loginDto.password, user.salt, user.password);
     if (isCorrect) {
       const { username, nick } = user;
-      req.session.user = { username, nick };
+      session.user = { username, nick };
+      response.cookie('username', username, { maxAge: COOKIE_MAX_AGE_MILL_SECS });
       await session.save();
+      return { username: user.username };
+    } else {
+      session.user = null;
+      response.clearCookie('username');
+      throw new HttpException(COMMON_LOGIN_ERROR, 400);
     }
-    return { username: user.username };
   }
 
+  @Get('/logout')
+  async logout(@Session() session, @Res() res) {
+    session.user = null;
+    res.status(302).redirect('/home');
+  }
+
+  @UseGuards(ClientAuthGuard)
   @Get('/session')
   async currentUser(@Session() session: Record<string, any>) {
+    console.log('session-', session);
     return session.user ?? { username: '游客' };
   }
 

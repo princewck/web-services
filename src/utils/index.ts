@@ -6,8 +6,8 @@ export const encryptPwd = (pwd: string, salt: string) => {
   return hash.update(pwdStr).digest('base64');
 }
 
-export const isPwdCorrect = (input: string, salt: string, realPwdEncrypted: string) => {
-  const inputEncrypted = encryptPwd(input, salt);
+export const isPwdCorrect = (password: string, salt: string, realPwdEncrypted: string) => {
+  const inputEncrypted = encryptPwd(password, salt);
   return inputEncrypted === realPwdEncrypted;
 }
 

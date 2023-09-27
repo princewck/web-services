@@ -1,4 +1,4 @@
-import { IsNotEmpty } from "class-validator";
+import { IsNotEmpty, IsString } from "class-validator";
 
 export class ClientLoginDto {
   @IsNotEmpty()
@@ -6,6 +6,7 @@ export class ClientLoginDto {
 
   public mobile: string;
 
+  @IsString()
   public password: string;
   
 }
