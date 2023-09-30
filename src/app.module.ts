@@ -22,6 +22,7 @@ import { ClientsModule } from './clients/clients.module';
 import { AliyunService } from './aliyun/aliyun.service';
 import { TestModule } from './test/test.module';
 import { isDev } from './utils';
+import { AliyunController } from './aliyun/aliyun.controller';
 
 console.log('isDev', isDev);
 
@@ -44,7 +45,7 @@ console.log('isDev', isDev);
     ClientsModule,
     ...(isDev ? [TestModule] : []),
   ],
-  controllers: [AppController, WepayController],
+  controllers: [AppController, WepayController, AliyunController],
   providers: [AppService, UsersService, AliyunService],
 })
 export class AppModule implements NestModule {

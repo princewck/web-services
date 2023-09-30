@@ -12,7 +12,7 @@ export class PayloadInterceptor implements NestInterceptor {
       .handle()
       .pipe(
         map((value) => {
-          if (res.statusCode !== 200) {
+          if (res.statusCode >= 400) {
             return {
               data: value,
               message: 'failed',
@@ -25,6 +25,11 @@ export class PayloadInterceptor implements NestInterceptor {
               items: value.items,
               pageSize: Number(value.pageSize),
             };
+          }
+          if (!value) {
+            return {
+              message: 'SUCCESS',   
+            }
           }
           return value;
         }),

@@ -2,6 +2,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from '../auth/constants';
+import { AliyunModule } from '../aliyun/aliyun.module';
 import { AliyunService } from '../aliyun/aliyun.service';
 
 /** 全局使用的模块 */
@@ -13,9 +14,9 @@ import { AliyunService } from '../aliyun/aliyun.service';
       secret: jwtConstants.secret,
       signOptions: { expiresIn: 3600 * 24 }
     }),
-    AliyunService,
+    AliyunModule,
   ],
-  exports: [HttpModule, JwtModule, AliyunService],
+  exports: [HttpModule, JwtModule, AliyunModule],
   providers: [AliyunService]
 })
 export class GlobalModule { }

@@ -41,6 +41,8 @@
     "@nestjs/passport": "^8.0.0",
     "@nestjs/platform-express": "^8.0.0",
     "@nestjs/typeorm": "8.0.2",
+    "@types/ali-oss": "^6.16.9",
+    "ali-oss": "^6.18.1",
     "axios": "1.2.1",
     "chalk": "^3.0.0",
     "class-transformer": "^0.5.1",

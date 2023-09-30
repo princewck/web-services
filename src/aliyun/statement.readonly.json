@@ -1,0 +1,16 @@
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["oss:GetObject"],
+      "Principal": ["*"],
+      "Resource": ["acs:oss:*:*:minnuo"],
+      "Condition": {
+        "StringLike": {
+          "oss:Prefix": ["mintools/*"]
+        }
+      }
+    }
+  ]
+}
