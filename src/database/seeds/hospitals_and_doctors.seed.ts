@@ -1,6 +1,6 @@
 import { Factory, Seeder } from 'typeorm-seeding'
 import { Connection } from 'typeorm'
-import { Hospital, Doctor, User } from '../../models';
+import { Hospital, Doctor, Admin } from '../../models';
 
 const data = [
   ...require('../../../data/1-1999.json'),
@@ -14,7 +14,7 @@ export default class CreateHospitals implements Seeder {
       await connection
       .createQueryBuilder()
       .insert()
-      .into(User)
+      .into(Admin)
       .values([{ id: 3, nick: 'wangchengkai', open_id: '123' }])
       .execute();
     // for (let i = 0, len = data.length; i < len; i ++) {

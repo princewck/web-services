@@ -11,5 +11,4 @@ export class ClientAuthGuard implements CanActivate {
     return !!request?.session?.user;
   }
 
-
 };

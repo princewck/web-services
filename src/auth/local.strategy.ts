@@ -1,18 +1,25 @@
 import { Strategy } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { COMMON_LOGIN_ERROR, USER_NOT_EXISTS } from '../users/constants';
+import { isDev } from '../utils';
 
 @Injectable()
-export class LocalStrategy extends PassportStrategy(Strategy) {
+export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   constructor(private readonly authService: AuthService) {
     super();
   }
 
+  /** 
+   * passport-local 约定的参数
+   * 掉坑提示: 当 body 中缺少约定的字段时, 这个方法不会触发
+   * https://stackoverflow.com/questions/68171886/nestjs-passport-local-strategy-validate-method-never-called
+   */
   async validate(username: string, password: string): Promise<any> {
     const user = await this.authService.validateUser(username, password);
     if (!user) {
-      throw new UnauthorizedException();
+      throw new HttpException({ message: isDev ? USER_NOT_EXISTS : COMMON_LOGIN_ERROR }, 403);
     }
     return user;
   }

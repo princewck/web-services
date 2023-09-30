@@ -1,5 +1,5 @@
 import {MigrationInterface, QueryRunner, createQueryBuilder} from "typeorm";
-import { Hospital, Doctor, User } from '../../models';
+import { Hospital, Doctor, Admin } from '../../models';
 import * as chalk from 'chalk';
 import { format } from 'date-fns';
 

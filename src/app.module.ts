@@ -1,11 +1,10 @@
 import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UsersService } from './users/users.service';
 
 import { LoggerMiddleware } from './common/middlewares/logger';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
+import { AdminsModule } from './admins/admins.module';
 
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WepayController } from './wechat/wechat.controller';
@@ -18,7 +17,7 @@ import { GptModule } from './gpt/gpt.module';
 import { GptTemplateModule } from './gpt-template/gpt-template.module';
 import { ToolCategoryModule } from './tool-category/tool-category.module';
 import { ToolsModule } from './tools/tools.module';
-import { ClientsModule } from './clients/clients.module';
+import { UsersModule } from './users/users.module';
 import { AliyunService } from './aliyun/aliyun.service';
 import { TestModule } from './test/test.module';
 import { isDev } from './utils';
@@ -28,7 +27,7 @@ console.log('isDev', isDev);
 
 @Module({
   imports: [
-    AuthModule, UsersModule,
+    AuthModule, AdminsModule,
     WepayModule,
     TypeOrmModule.forRoot({
       autoLoadEntities: true,
@@ -42,11 +41,11 @@ console.log('isDev', isDev);
     GptTemplateModule,
     ToolCategoryModule,
     ToolsModule,
-    ClientsModule,
+    UsersModule,
     ...(isDev ? [TestModule] : []),
   ],
   controllers: [AppController, WepayController, AliyunController],
-  providers: [AppService, UsersService, AliyunService],
+  providers: [AppService, AliyunService],
 })
 export class AppModule implements NestModule {
 

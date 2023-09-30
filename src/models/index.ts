@@ -1,4 +1,4 @@
-export { User } from './user.entity';
+export { Admin } from './admin.entity';
 export { Hospital } from './hospital.entity';
 export { Doctor } from './doctor.entity';
 export { GptTemplates } from './entities/GptTemplates';
