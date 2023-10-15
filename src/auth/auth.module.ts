@@ -18,9 +18,9 @@ const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
     passportModule,
     JwtModule.register({
       global: true,
-      secretOrPrivateKey: jwtConstants.secret,
+      secret: jwtConstants.secret,
       signOptions: {
-        expiresIn: '60s',
+        expiresIn: jwtConstants.expiresIn,
       },
     })
   ],

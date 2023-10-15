@@ -9,11 +9,13 @@ import * as OSS from 'ali-oss';
 import { STS } from 'ali-oss';
 import * as statementFull from './statement.full.json';
 import * as statementReadonly from './statement.readonly.json';
+import * as statementReadonlyWithList from './statement.readonly_enable_list.json';
 import getStatementPut from './statement.put';
 
 export enum STS_POLICY_TYPE {
   FULL = 'full',
   READONLY = 'readonly',
+  READONLY_WITH_LIST = 'readonly_with_list',
   PUT = 'put'
 }
 
@@ -27,7 +29,7 @@ const getPolicy = (type: STS_POLICY_TYPE) => {
   return {
     [STS_POLICY_TYPE.FULL]: statementFull,
     [STS_POLICY_TYPE.READONLY]: statementReadonly,
-    // [STS_POLICY_TYPE.PUT]: statementReadonly,
+    [STS_POLICY_TYPE.READONLY_WITH_LIST]: statementReadonlyWithList,
   }[type];
 }
 
@@ -65,7 +67,7 @@ export class AliyunService {
   async sendSMS(phoneNumber: string) {
     const client = this.createSMSClient();
     const options = new $Dysmsapi20170525.SendSmsRequest({
-      signName: '闵诺网络',
+      signName: '上海闵诺网络科技',
       templateCode: 'SMS_287610622',
       phoneNumbers: phoneNumber,
       templateParam: JSON.stringify({ code: '12345' })
@@ -98,6 +100,31 @@ export class AliyunService {
     }
   }
 
+  async listOSSObject() {
+    const store = await this.getSTSClient(STS_POLICY_TYPE.FULL);
+    try {
+      const result = await store.list({ prefix: 'mintools', "max-keys": '100' }, {});
+      return {
+        objects: result.objects,
+        nextMarker: result.nextMarker,
+      };
+    } catch (e) {
+      throw new HttpException(e.message, 400);
+    }
+  }
+  async listOSSImages() {
+    const store = await this.getSTSClient(STS_POLICY_TYPE.FULL);
+    try {
+      const result = await store.list({ prefix: 'mintools/img', "max-keys": '100' }, {});
+      return {
+        objects: result.objects,
+        nextMarker: result.nextMarker,
+      };
+    } catch (e) {
+      throw new HttpException(e.message, 400);
+    }
+  }
+
   async createReadonlySTS() {
     const policy = getPolicy(STS_POLICY_TYPE.READONLY);
     return await this.createSTS(policy);
@@ -108,7 +135,11 @@ export class AliyunService {
     if (!file) {
       throw new Error('文件名不能为空');
     }
+    if (!file.startsWith('mintools/')) {
+      throw new Error('文件名不符合规范');
+    }
     const statement = getStatement(STS_POLICY_TYPE.PUT, file);
+    console.log('statement', JSON.stringify(statement));
     return await this.createSTS(statement);
   }
 
@@ -130,7 +161,7 @@ export class AliyunService {
       // endpoint: this.configService.get('OSS_ENTRYPOINT'),
       accessKeyId: sts.accessKeyId,
       accessKeySecret: sts.accessKeySecret,
-      stsToken: sts.SecurityToken,
+      stsToken: sts.stsToken,
     });
     this.ossCache.set(key ?? 'default', {
       instance: oss,
@@ -146,12 +177,14 @@ export class AliyunService {
     });
     try {
       /** 不能使用主账号调用, 注意使用子账号的 ak, sk, 并且为子账号授权 AliyunSTSAssumeRoleAccess */
-      const res = await sts.assumeRole(mintrole, JSON.stringify(policy), 60 * this.configService.get('OSS_EXPIRE_MINUTES'), 'mintsession');
+      const res = await sts.assumeRole(mintrole, JSON.stringify(policy), 60 * this.configService.get('OSS_EXPIRE_MINUTES'));
       return {
         accessKeyId: res.credentials.AccessKeyId,
         accessKeySecret: res.credentials.AccessKeySecret,
-        SecurityToken: res.credentials.SecurityToken,
-        Expiration: res.credentials.Expiration,
+        stsToken: res.credentials.SecurityToken,
+        expiration: res.credentials.Expiration,
+        region: this.configService.get('OSS_REGION'),
+        bucket: this.configService.get('OSS_BUCKET'),
       };
     } catch (e) {
       console.error(e);

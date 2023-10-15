@@ -2,8 +2,7 @@ import { Strategy } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
 import { HttpException, Injectable } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { COMMON_LOGIN_ERROR, USER_NOT_EXISTS } from '../users/constants';
-import { isDev } from '../utils';
+import { COMMON_LOGIN_ERROR } from '../users/constants';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
@@ -19,7 +18,7 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   async validate(username: string, password: string): Promise<any> {
     const user = await this.authService.validateUser(username, password);
     if (!user) {
-      throw new HttpException({ message: isDev ? USER_NOT_EXISTS : COMMON_LOGIN_ERROR }, 403);
+      throw new HttpException({ message: COMMON_LOGIN_ERROR }, 403);
     }
     return user;
   }

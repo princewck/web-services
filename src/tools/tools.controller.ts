@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { ToolsService } from './tools.service';
 import { CreateToolDto } from './dto/create-tool.dto';
 import { UpdateToolDto } from './dto/update-tool.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('/admin/tools')
 export class ToolsController {
   constructor(private readonly toolsService: ToolsService) { }

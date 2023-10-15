@@ -8,13 +8,15 @@ import { randomBytes } from 'node:crypto';
 import { CreateAdminDto } from './dto/createAdmin.dto';
 import { encryptPwd, isPwdCorrect } from '../utils';
 import { AdminRole } from '../models/admin.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
 
   constructor(
     private readonly adminService: AdminsService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService
   ) {
     this.adminService.findByUsername('wangchengkai').then(wck => {
       if (!wck) {
@@ -59,10 +61,14 @@ export class AuthService {
     const userInfo: Admin = await this.adminService.findByUsername(user.username);
     const { username, nick, mobile, role } = userInfo;
     const payload = { username, nick, mobile, role, isAdmin: role === AdminRole.ADMIN };
-    console.log('userpayload', payload);
     return {
       access_token: this.jwtService.sign(payload),
     }
+  }
+
+  async logout(): Promise<void> {
+    // 把登出 token 加入黑名单
+    // TODO
   }
 
 }

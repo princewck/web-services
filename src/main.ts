@@ -33,7 +33,6 @@ async function bootstrap() {
   // Optionally use onReady() to get a promise that resolves when store is ready.
   sessionStore.onReady().then(() => {
     // MySQL session store ready for use.
-    console.log('MySQLStore ready');
   }).catch(error => {
     // Something went wrong.
     console.error(error);
