@@ -12,3 +12,10 @@ export const isPwdCorrect = (password: string, salt: string, realPwdEncrypted: s
 }
 
 export const isDev = process.env.NODE_ENV === 'development';
+
+
+export const genRandomNumberCodeString = (length = 4) => {
+  if (length < 4) throw new Error('code should has a length at least 4');
+  return Math.floor(Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - Math.pow(10, length - 1)))
+    + '';
+}

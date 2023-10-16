@@ -1,4 +1,4 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, Logger } from '@nestjs/common';
 import Dysmsapi20170525, * as $Dysmsapi20170525 from '@alicloud/dysmsapi20170525';
 import OpenApi, * as $OpenApi from '@alicloud/openapi-client';
 import Util, * as $Util from '@alicloud/tea-util';
@@ -64,13 +64,14 @@ export class AliyunService {
     return new Dysmsapi20170525(config);
   }
 
-  async sendSMS(phoneNumber: string) {
+  async sendSMS(phoneNumber: string, code: string) {
+    if (!code) throw new BadRequestException('code 不能为空');
     const client = this.createSMSClient();
     const options = new $Dysmsapi20170525.SendSmsRequest({
       signName: '上海闵诺网络科技',
       templateCode: 'SMS_287610622',
       phoneNumbers: phoneNumber,
-      templateParam: JSON.stringify({ code: '12345' })
+      templateParam: JSON.stringify({ code })
     });
     const runtime = new $Util.RuntimeOptions({});
     try {

@@ -11,6 +11,6 @@ export class TestController {
 
   @Post('/sms/single')
   public async sendSMS() {
-    return await this.aliyun.sendSMS('18521560570');
+    // return await this.aliyun.sendSMS('18521560570');
   }
 }

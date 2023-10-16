@@ -22,6 +22,7 @@ import { AliyunService } from './aliyun/aliyun.service';
 import { TestModule } from './test/test.module';
 import { isDev } from './utils';
 import { AliyunController } from './aliyun/aliyun.controller';
+import { SmsHistoryModule } from './sms-history/sms-history.module';
 
 console.log('isDev', isDev);
 
@@ -43,6 +44,7 @@ console.log('isDev', isDev);
     ToolsModule,
     UsersModule,
     ...(isDev ? [TestModule] : []),
+    SmsHistoryModule,
   ],
   controllers: [AppController, WepayController, AliyunController],
   providers: [AppService, AliyunService],
