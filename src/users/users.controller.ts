@@ -1,21 +1,37 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, Session, Request, UseGuards, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, Session, Request, UseGuards, Res, Logger } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { ClientLoginDto } from './dto/login.dto';
-import { isPwdCorrect } from '../utils';
+import { confoundMobile, isPwdCorrect } from '../utils';
 import { COMMON_LOGIN_ERROR, USER_NOT_EXISTS } from './constants';
 import { ClientAuthGuard } from '../auth/client-auth.guard';
 import { Response } from 'express';
 import { COOKIE_MAX_AGE_MILL_SECS } from '../constants';
+import { SmsHistoryService } from '../sms-history/sms-history.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly clientsService: UsersService) { }
+
+  private readonly logger = new Logger(UsersController.name);
+
+  constructor(
+    private readonly clientsService: UsersService,
+    private readonly smsHistoryService: SmsHistoryService,
+  ) { }
 
   @Post()
-  create(@Body() createClientDto: CreateClientDto) {
-    return this.clientsService.create(createClientDto);
+  async create(@Body() body) {
+    const { smsCode, type, username, mobile } = body;
+    const dto = new CreateClientDto();
+    dto.username = username;
+    dto.mobile = mobile;
+    try {
+      await this.smsHistoryService.verify(mobile, type, smsCode);
+      return this.clientsService.create(dto);
+    } catch (e) {
+      throw new HttpException(e.message, 403);
+    }
   }
 
   @Post('/login')
@@ -24,27 +40,31 @@ export class UsersController {
     @Session() session: Record<string, any>,
     @Res({ passthrough: true }) response: Response
   ) {
-    const user = await this.clientsService.findByUsername(loginDto.username);
-    if (!user) {
-      throw new HttpException(USER_NOT_EXISTS, 403);
-    }
-    const isCorrect = isPwdCorrect(loginDto.password, user.salt, user.password);
-    if (isCorrect) {
-      const { username, nick } = user;
-      session.user = { username, nick };
-      response.cookie('username', username, { maxAge: COOKIE_MAX_AGE_MILL_SECS });
+    try {
+      await this.smsHistoryService.verify(loginDto.mobile, loginDto.type, loginDto.smsCode);
+      const user = await this.clientsService.findByMobile(loginDto.mobile);
+      if (!user) {
+        const user = new CreateClientDto();
+        user.mobile = loginDto.mobile;
+        await this.clientsService.create(user);
+      }
+      const { mobile } = user;
+      response.cookie('mobile', confoundMobile(mobile), { maxAge: COOKIE_MAX_AGE_MILL_SECS });
+      session.user = { mobile: confoundMobile(mobile) };
       await session.save();
-      return { username: user.username };
-    } else {
+    } catch (e) {
+      console.error(e);
+      this.logger.error(e.message);
       session.user = null;
       response.clearCookie('username');
-      throw new HttpException(COMMON_LOGIN_ERROR, 400);
+      throw new HttpException(COMMON_LOGIN_ERROR, 403);
     }
   }
 
   @Get('/logout')
-  async logout(@Session() session, @Res() res) {
+  async logout(@Session() session, @Res({ passthrough: true }) res) {
     session.user = null;
+    res.clearCookie('mobile');
     res.status(302).redirect('/home');
   }
 

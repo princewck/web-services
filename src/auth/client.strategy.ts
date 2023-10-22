@@ -16,10 +16,8 @@ export class ClientStrategy extends PassportStrategy(Strategy, 'client') {
   async validate(@Session() session: Record<string, any>): Promise<any> {
     console.log('session==', session);
     if (!session.user) {
-      // throw new UnauthorizedException('请登录');
       return false;
     }
-    // return session.user;
     return true;
   }
 }

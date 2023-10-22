@@ -19,3 +19,7 @@ export const genRandomNumberCodeString = (length = 4) => {
   return Math.floor(Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - Math.pow(10, length - 1)))
     + '';
 }
+
+export const confoundMobile = (mobile: string) => {
+  return mobile?.replace(/^(\d{3})(\d{5})(\d{3})$/, '$1***$2');
+}

@@ -19,14 +19,16 @@ export class UsersService {
   ) { }
 
   async create(createClientDto: CreateClientDto) {
-    const exists = await this.findByUsername(createClientDto.username);
-    console.log('exists', exists);
+    const exists = await this.findByMobile(createClientDto.mobile);
     if (exists) {
       throw new HttpException({ message: REGISTER_ERROR_USERNAME_EXISTS }, 400);
     }
-    const salt = (await promisify(randomBytes)(10)).toString('hex');
-    createClientDto.salt = salt;
-    createClientDto.password = encryptPwd(createClientDto.password, salt);
+    // 暂时不支持密码登录
+    if (createClientDto.password) {
+      const salt = (await promisify(randomBytes)(10)).toString('hex');
+      createClientDto.salt = salt;
+      createClientDto.password = encryptPwd(createClientDto.password, salt);
+    }
     const result = await this.usersRepository.save(createClientDto);
     return result;
   }
@@ -39,8 +41,8 @@ export class UsersService {
     return this.usersRepository.find({ id });
   }
 
-  findByUsername(username: string) {
-    return this.usersRepository.findOne({ username });
+  findByMobile(mobile: string) {
+    return this.usersRepository.findOne({ mobile });
   }
 
   update(id: number, updateClientDto: UpdateClientDto) {

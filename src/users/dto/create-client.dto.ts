@@ -11,7 +11,9 @@ export class CreateClientDto {
 
   public salt: string;
 
-  @IsNotEmpty()
-  public password: string;
+  @IsNotEmpty({ message: '请输入验证码' })
+  public smsCode: string;
+
+  public password?: string;
   
 }

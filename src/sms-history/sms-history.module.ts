@@ -8,6 +8,7 @@ import { AliyunModule } from '../aliyun/aliyun.module';
 @Module({
   controllers: [SmsHistoryController],
   providers: [SmsHistoryService],
-  imports: [TypeOrmModule.forFeature([SmsHistory]), AliyunModule]
+  imports: [TypeOrmModule.forFeature([SmsHistory]), AliyunModule],
+  exports: [SmsHistoryService],
 })
 export class SmsHistoryModule { }

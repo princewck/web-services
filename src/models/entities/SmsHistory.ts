@@ -2,6 +2,8 @@ import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 export enum SMS_TYPE {
   LOGIN = 'login',
+  REGISTER = 'register',
+  FORGET = 'forget',
   VALIDATE = 'validate'
 }
 
@@ -41,5 +43,5 @@ export class SmsHistory {
     nullable: true,
     default: () => null,
   })
-  public deletedAt: Date | null;  
+  public deletedAt: Date | null;
 }
