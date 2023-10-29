@@ -10,8 +10,8 @@ import { PaginateList } from '../utils/PaginateList';
 @Injectable()
 export class ToolsService {
 
-  constructor(    @InjectRepository(Tools)
-  private readonly toolRepository: Repository<Tools>) {}
+  constructor(@InjectRepository(Tools)
+  private readonly toolRepository: Repository<Tools>) { }
 
   create(createToolDto: CreateToolDto) {
     return this.toolRepository.save(createToolDto);
@@ -29,6 +29,10 @@ export class ToolsService {
 
   async findOne(id: number) {
     return await this.toolRepository.findOne({ id });
+  }
+
+  async findByKey(id: string) {
+    return await this.toolRepository.findOne({ key: id });
   }
 
   update(id: number, updateToolDto: UpdateToolDto) {

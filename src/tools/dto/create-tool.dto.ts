@@ -15,4 +15,6 @@ export class CreateToolDto {
 
   @IsNumber()
   public categoryId: number;
+
+  public detail: string;
 }

@@ -37,4 +37,10 @@ export class Tools {
     default: () => "CURRENT_TIMESTAMP",
   })
   public updatedAt: Date | null;
+
+  @Column("text", {
+    name: "detail",
+    default: () => "",
+  })
+  public detail: string;
 }
