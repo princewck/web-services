@@ -6,5 +6,6 @@ export default () => ({
   WX_APP_ID: 'xxxxxxxx',
   WX_APP_SECRET: 'xxxxxxx',
   OPENAI_API_KEY: 'OPENAI_API_KEY',
+  ALI_TEXT_GEN_API_KEY: 'XXXXXXX', // 灵柩大模型 API key 
 });
 

@@ -2,8 +2,9 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, Injectable, Logger, MessageEvent } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Configuration, OpenAIApi } from 'openai';
-import { catchError, firstValueFrom, interval, map, Observable, Subject, take, takeUntil } from 'rxjs';
-import { OPENAI_LIST_MODELS } from './constants';
+import { catchError, first, firstValueFrom, interval, map, Observable, Subject, take, takeUntil } from 'rxjs';
+import { ALI_TEXT_GEN_API, OPENAI_LIST_MODELS } from './constants';
+import { AxiosError } from 'axios';
 
 @Injectable()
 export class GptService {
@@ -75,5 +76,41 @@ export class GptService {
       }, 403);
     })));
     return res.data?.data || [];
+  }
+
+
+
+  async askOne(question: string) {
+    const res = await firstValueFrom(this.httpService.post<any>(ALI_TEXT_GEN_API, {
+      "model": "qwen-turbo",
+      "input": {
+        "prompt": question,
+      }
+    }, {
+      headers: {
+        Authorization: this.configService.get('ALI_TEXT_GEN_API_KEY'),
+      },
+    }).pipe(
+      catchError((error: AxiosError) => {
+        throw error.response.data;
+      }),
+      first(),
+    ));
+    return res.data;
+  }
+
+  async askOneJSON(question, schema) {
+    const questionStr = question + ',使用 json 格式返回, 返回内容仅包含原生 json 字符串, 不要用 markdown 表示, 结果不包含符号, schema 是' + JSON.stringify(schema);
+    const data = await this.askOne(questionStr);
+    try {
+      if (data.output?.text) {
+        console.log('text', data.output?.text);
+        return JSON.parse(data.output?.text);
+      }
+      return null;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Post, Sse, Request } from '@nestjs/common';
+import { Controller, Get, Header, Post, Sse, Request, Req } from '@nestjs/common';
 import { GptService } from './gpt.service';
 
 @Controller('gpt')
@@ -26,6 +26,13 @@ export class GptController {
   getModels(@Request() req) {
     const body = req.body;
     return this.gptService.models();
+  }
+
+  @Post('ask/json')
+  askOneJson(@Req() req) {
+    const body = req.body;
+    if (process.env.NODE_ENV !== 'development') return { "message": "not available" };
+    return this.gptService.askOneJSON(`字符串“${body?.value}”的拼音是什么`, { chinese: 'string', pinyin: 'string' });
   }
 
 
