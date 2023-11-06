@@ -1,4 +1,4 @@
-import { Controller, Get, HttpException, Post, Query, Req, Session, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Post, Query, Req, Session, UseGuards } from '@nestjs/common';
 import { AliyunService } from './aliyun.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Buffer } from 'buffer';
@@ -43,6 +43,14 @@ export class AliyunController {
     const { filename, data }: { data: string, filename: string } = request.body;
     const file = Buffer.from(data, 'utf8');
     return await this.aliyunService.putOSSObject(filename, file);
+  }
+
+  @Post('api/imageseg')
+  async imageSegment(@Body() body) {
+    const { image } = body;
+    if (!image) throw new HttpException({ message: 'invalid image' }, 403);
+    const res = await this.aliyunService.segmentBody(image);
+    return res;
   }
 
 }

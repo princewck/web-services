@@ -11,6 +11,7 @@ import * as statementFull from './statement.full.json';
 import * as statementReadonly from './statement.readonly.json';
 import * as statementReadonlyWithList from './statement.readonly_enable_list.json';
 import getStatementPut from './statement.put';
+import imageseg20191230, * as $imageseg20191230 from '@alicloud/imageseg20191230';
 
 export enum STS_POLICY_TYPE {
   FULL = 'full',
@@ -56,6 +57,7 @@ export class AliyunService {
     this.accessKeySecret = this.configService.get('ALI_ACCESS_KEY_SECRET');
   }
 
+  /** 短信服务 */
   private createSMSClient(): Dysmsapi20170525 {
     const config = new $OpenApi.Config({
       accessKeyId: this.accessKeyId,
@@ -85,6 +87,8 @@ export class AliyunService {
     }
   }
 
+
+  /** OSS */
   /** https://oss.console.aliyun.com/sdk */
   async putOSSObject(filename: string, file: any, options?: OSS.PutObjectOptions) {
     const store = await this.getSTSClient(STS_POLICY_TYPE.PUT, filename);
@@ -126,6 +130,7 @@ export class AliyunService {
     }
   }
 
+  /** STS */
   async createReadonlySTS() {
     const policy = getPolicy(STS_POLICY_TYPE.READONLY);
     return await this.createSTS(policy);
@@ -142,6 +147,36 @@ export class AliyunService {
     const statement = getStatement(STS_POLICY_TYPE.PUT, file);
     console.log('statement', JSON.stringify(statement));
     return await this.createSTS(statement);
+  }
+
+
+  /** 视觉智能, 人体抠图 */
+  async segmentBody(imageURL: string, hd = false): Promise<{ imageURL: string }> {
+    const client = this.createClient();
+    let segmentBodyRequest = hd ? new $imageseg20191230.SegmentHDBodyRequest({ imageURL })
+      : new $imageseg20191230.SegmentBodyRequest({
+        imageURL,
+      });
+    let runtime = new $Util.RuntimeOptions({});
+    try {
+      // 复制代码运行请自行打印 API 的返回值
+      let res;
+      if (!hd) {
+        res = await client.segmentBodyWithOptions(segmentBodyRequest, runtime);
+      } else {
+        res = await client.segmentHDBodyWithOptions(segmentBodyRequest, runtime);
+      }
+      return res?.body?.data;
+    } catch (error) {
+      // 如有需要，请打印 error
+      Util.assertAsString(error.message);
+      console.error(error);
+      if (!hd && error.data.Code === 'InvalidFile.Resolution') {
+        console.log('使用高清抠图');
+        // FIXME 高清抠图为收费功能
+        return await this.segmentBody(imageURL, true);
+      }
+    }
   }
 
   private ossCache: Map<string, {
@@ -192,4 +227,15 @@ export class AliyunService {
       throw new HttpException(e.AccessDeniedDetail || e.message, 400);
     }
   }
+
+  private createClient(): imageseg20191230 {
+    let config = new $OpenApi.Config({
+      accessKeyId: this.accessKeyId,
+      accessKeySecret: this.accessKeySecret,
+    });
+    // Endpoint 请参考 https://api.aliyun.com/product/imageseg
+    config.endpoint = `imageseg.cn-shanghai.aliyuncs.com`;
+    return new imageseg20191230(config);
+  }
+
 }
