@@ -23,3 +23,9 @@ export const genRandomNumberCodeString = (length = 4) => {
 export const confoundMobile = (mobile: string) => {
   return mobile?.replace(/^(\d{3})(\d{5})(\d{3})$/, '$1***$2');
 }
+
+export const md5 = (origin: string) => {
+  if (typeof origin !== 'string') return null;
+  const hash = createHash('md5');
+  return hash.update(origin).digest('base64');
+}

@@ -82,7 +82,7 @@ export class GptService {
 
   async askOne(question: string) {
     const res = await firstValueFrom(this.httpService.post<any>(ALI_TEXT_GEN_API, {
-      "model": "qwen-turbo",
+      "model": "qwen-max",
       "input": {
         "prompt": question,
       }
@@ -99,8 +99,49 @@ export class GptService {
     return res.data;
   }
 
-  async askOneJSON(question, schema) {
-    const questionStr = question + ',使用 json 格式返回, 返回内容仅包含原生 json 字符串, 不要用 markdown 表示, 结果不包含符号, schema 是' + JSON.stringify(schema);
+
+  async askMessages(messages: { role: string; content: string }[]) {
+    const res = await firstValueFrom(this.httpService.post<any>(ALI_TEXT_GEN_API, {
+      "model": "qwen-max",
+      "input": {
+        messages,
+      }
+    }, {
+      headers: {
+        Authorization: this.configService.get('ALI_TEXT_GEN_API_KEY'),
+      },
+    }).pipe(
+      catchError((error: AxiosError) => {
+        throw error.response.data;
+      }),
+      first(),
+    ));
+    return res.data;
+  }
+
+  async askMessagesJSON(messages: { role: string; content: string }[]) {
+    const data = await this.askMessages(messages);
+    try {
+      if (data.output?.text) {
+        console.log('text', data.output?.text);
+        return JSON.parse(data.output?.text);
+      }
+      return null;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
+
+  async askOneJSON(question, schema, demo?) {
+    let questionStr = question + '回答内容仅包含原生 json 字符, 请不要包含额外字符, 不要用 markdown 格式';
+    if (schema) {
+      questionStr += 'json schema 是' + JSON.stringify(schema);
+    }
+    if (demo) {
+      questionStr += ',' + demo;
+    }
+    console.log('questionStr', questionStr);
     const data = await this.askOne(questionStr);
     try {
       if (data.output?.text) {
