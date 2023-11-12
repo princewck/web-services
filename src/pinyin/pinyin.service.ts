@@ -66,18 +66,22 @@ export class PinyinService {
     console.log('preparedWords', preparedWords);
     console.timeEnd('preparedWords');
     try {
-      const system = '返回 json 字符串, 只返回拼音不要包含中文, 不要出现大写字母, 请严格确保声调标注正确, 并且中文字数和拼音一一对应不要添加多余内容,最后确保 json 语法正确';
+      const system = '返回 json 字符串, 严格确保返回内容只有拼音, 即返回内容不允许包含中文和任何特殊标点符号, 请严格确保声调正确, 并且中文字数和拼音一一对应不要添加多余内容,严格确保 json 语法正确';
       const messages = [
         { role: 'user', content: '你好, 你是一个汉语专家, 下面我会告诉你一句中文并附上上不完善的拼音, 请帮我完善?处的多音字并注明音调, 请用 json 的格式返回结果 { result: "拼音结果" }' },
         { role: 'assistant', content: '好的，我已经准备好了。请你说出你想查询的句子，我会先补全拼音, 然后只回复其拼音表示结果。' },
         { role: 'user', content: '行行出状元  ? ? chu zhuang yuan' },
         { role: 'assistant', content: '{"result": "háng háng chū zhuàng yuán"}' },
-        { role: 'user', content: preparedWords },
+        { role: 'user', content: '对, 这就是我要的 json 格式, 后续都按上一条的 json 格式返回, 接下来请帮我看下下面这个词:' + preparedWords },
       ];
       console.log('messages ', messages);
       const res = await this.gptService.askMessagesBD(messages, true, system);
-      console.log('res?.result', res?.result);
-      const json = res?.result?.replace(/[^{}]*({[^{}]+})[^{}]*/g, '$1');
+      const json = res?.result?.replace(/[\u4e00-\u9fa5]/gm, '')
+        ?.replace(/[^{}]*({[^{}]+})[^{}]*/g, '$1')
+        ?.replace(/"\s+/, '"')
+        ?.replace(/\s+"/, '"');
+
+      console.log('json', json);
       try {
         return JSON.parse(json);
       } catch (e) {

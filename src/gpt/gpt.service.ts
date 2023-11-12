@@ -128,7 +128,8 @@ export class GptService {
     const api = (pro ? BAIDU_TEXT_GEN_PRO_API : BAIDU_TEXT_GEN_API) + `?access_token=${token}`;
     const options: any = {
       messages,
-      temperature: 0.01,
+      // temperature: 0.01,
+      top_p: 0,
     };
     if (system) {
       options.system = system;
