@@ -3,7 +3,7 @@ import { HttpException, Injectable, Logger, MessageEvent } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config';
 import { Configuration, OpenAIApi } from 'openai';
 import { catchError, first, firstValueFrom, interval, map, Observable, Subject, take, takeUntil } from 'rxjs';
-import { ALI_TEXT_GEN_API, OPENAI_LIST_MODELS } from './constants';
+import { ALI_TEXT_GEN_API, BAIDU_TEXT_GEN_API, BAIDU_TEXT_GEN_PRO_API, OPENAI_LIST_MODELS } from './constants';
 import { AxiosError } from 'axios';
 
 @Injectable()
@@ -100,11 +100,13 @@ export class GptService {
   }
 
 
-  async askMessages(messages: { role: string; content: string }[]) {
+  async askMessagesALI(messages: { role: string; content: string }[]) {
     const res = await firstValueFrom(this.httpService.post<any>(ALI_TEXT_GEN_API, {
       "model": "qwen-max",
       "input": {
         messages,
+        seed: 'mintools',
+        temperature: 0.1
       }
     }, {
       headers: {
@@ -118,9 +120,34 @@ export class GptService {
     ));
     return res.data;
   }
+  //百度
+  //https://console.bce.baidu.com/tools/?_=1699797018399&u=bce-head#/api?product=AI&project=%E5%8D%83%E5%B8%86%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%B9%B3%E5%8F%B0&parent=ERNIE-Bot-4&api=rpc%2F2.0%2Fai_custom%2Fv1%2Fwenxinworkshop%2Fchat%2Fcompletions_pro&method=post
+  async askMessagesBD(messages: { role: string; content: string }[], pro?: boolean, system?: string) {
+    const token = await this.getBaiDuAccessToken();
+    console.log('token', token);
+    const api = (pro ? BAIDU_TEXT_GEN_PRO_API : BAIDU_TEXT_GEN_API) + `?access_token=${token}`;
+    const options: any = {
+      messages,
+      temperature: 0.01,
+    };
+    if (system) {
+      options.system = system;
+    }
+    const res = await firstValueFrom(this.httpService.post<any>(api, options, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+    }).pipe(
+      catchError((error: AxiosError) => {
+        throw error.response.data;
+      }),
+      first(),
+    ));
+    return res.data;
+  }
 
-  async askMessagesJSON(messages: { role: string; content: string }[]) {
-    const data = await this.askMessages(messages);
+  async askMessagesJSONALI(messages: { role: string; content: string }[]) {
+    const data = await this.askMessagesALI(messages);
     try {
       if (data.output?.text) {
         console.log('text', data.output?.text);
@@ -153,5 +180,18 @@ export class GptService {
       console.error(e);
       return null;
     }
+  }
+
+  private async getBaiDuAccessToken() {
+    const ak = this.configService.get('BAIDU_LLM_CLIENT_ID');
+    const sk = this.configService.get('BAIDU_LLM_CLIENT_SECRET');
+    const url = 'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=' + ak + '&client_secret=' + sk;
+    const res = await firstValueFrom(this.httpService.post<any>(url).pipe(
+      catchError((error: AxiosError) => {
+        throw error.response.data;
+      }),
+      first(),
+    ));
+    return res.data.access_token;
   }
 }

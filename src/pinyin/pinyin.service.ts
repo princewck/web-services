@@ -44,15 +44,46 @@ export class PinyinService {
   }
 
   private async getPinyinByGPT(words: string) {
+    console.time('preparedWords');
+    let py = '';
+    let preparedWords = words?.split('').map(c => {
+      const chineseReg = /[\u4e00-\u9fa5]/gm;
+      const isPY = chineseReg.test(c);
+      if (!isPY) return ' ';
+      const info = this.pinyinMapping[c];
+      if (info.length === 1) {
+        py += info[0].pinyin + ' ';
+        return c;
+      }
+      // 多音字返回
+      py += '? ';
+      return c;
+    }).join('');
+    preparedWords = preparedWords.replace(/\s+$/gm, '');
+    if (py) {
+      preparedWords = preparedWords + '  ' + py;
+    }
+    console.log('preparedWords', preparedWords);
+    console.timeEnd('preparedWords');
     try {
-      const res = await this.gptService.askMessages([
-        { role: 'user', content: '你好, 你是一个语文老师, 下面我会说一句话, 你都会告诉我它的拼音表示结果,并且除此以外你不会多说任何一个字, 比如“你好”表示为 nǐ hǎo, 准备好了吗?' },
-        { role: 'assistant', content: '好的，我已经准备好了。请你说出你想查询的句子，我将只回复其拼音表示结果。' },
-        { role: 'user', content: words },
-      ]);
-      return {
-        result: res.output?.text ?? null
-      };
+      const system = '返回 json 字符串, 只返回拼音不要包含中文, 不要出现大写字母, 请严格确保声调标注正确, 并且中文字数和拼音一一对应不要添加多余内容,最后确保 json 语法正确';
+      const messages = [
+        { role: 'user', content: '你好, 你是一个汉语专家, 下面我会告诉你一句中文并附上上不完善的拼音, 请帮我完善?处的多音字并注明音调, 请用 json 的格式返回结果 { result: "拼音结果" }' },
+        { role: 'assistant', content: '好的，我已经准备好了。请你说出你想查询的句子，我会先补全拼音, 然后只回复其拼音表示结果。' },
+        { role: 'user', content: '行行出状元  ? ? chu zhuang yuan' },
+        { role: 'assistant', content: '{"result": "háng háng chū zhuàng yuán"}' },
+        { role: 'user', content: preparedWords },
+      ];
+      console.log('messages ', messages);
+      const res = await this.gptService.askMessagesBD(messages, true, system);
+      console.log('res?.result', res?.result);
+      const json = res?.result?.replace(/[^{}]*({[^{}]+})[^{}]*/g, '$1');
+      try {
+        return JSON.parse(json);
+      } catch (e) {
+        console.error(e);
+        console.log(json + 'is not valid json');
+      }
     } catch (e) {
       console.error(e);
       throw new Error('转换失败');
