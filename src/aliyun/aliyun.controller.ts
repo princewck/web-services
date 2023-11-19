@@ -47,10 +47,11 @@ export class AliyunController {
 
   @Post('api/imageseg')
   async imageSegment(@Body() body) {
-    const { image } = body;
+    const { image, type } = body;
     if (!image) throw new HttpException({ message: 'invalid image' }, 403);
-    const res = await this.aliyunService.segmentBody(image);
-    return res;
+    if (!['body', 'common'].includes(type)) throw new HttpException({ message: 'invalid type' }, 403);
+    if (type === 'body') return await this.aliyunService.segmentBody(image);
+    if (type === 'common') return await this.aliyunService.segmentCommon(image);
   }
 
 }

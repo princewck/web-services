@@ -179,6 +179,35 @@ export class AliyunService {
     }
   }
 
+  /** 视觉智能, 通用抠图 */
+  async segmentCommon(imageURL: string, hd = false): Promise<{ imageURL: string }> {
+    const client = this.createClient();
+    let segmentBodyRequest = hd ? new $imageseg20191230.SegmentHDCommonImageRequest({ imageURL })
+      : new $imageseg20191230.SegmentCommonImageRequest({
+        imageURL,
+      });
+    let runtime = new $Util.RuntimeOptions({});
+    try {
+      // 复制代码运行请自行打印 API 的返回值
+      let res;
+      if (!hd) {
+        res = await client.segmentCommonImageWithOptions(segmentBodyRequest, runtime);
+      } else {
+        res = await client.segmentHDCommonImageWithOptions(segmentBodyRequest, runtime);
+      }
+      return res?.body?.data;
+    } catch (error) {
+      // 如有需要，请打印 error
+      Util.assertAsString(error.message);
+      console.error(error);
+      if (!hd && error.data.Code === 'InvalidFile.Resolution') {
+        console.log('使用高清抠图');
+        // FIXME 高清抠图为收费功能
+        return await this.segmentCommon(imageURL, true);
+      }
+    }
+  }
+
   private ossCache: Map<string, {
     instance?: OSS;
     expires: number;
