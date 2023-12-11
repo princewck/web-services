@@ -4,7 +4,7 @@ import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { ClientLoginDto } from './dto/login.dto';
 import { confoundMobile, isPwdCorrect } from '../utils';
-import { COMMON_LOGIN_ERROR, USER_NOT_EXISTS } from './constants';
+import { COMMON_LOGIN_ERROR, LOGIN_SMS_CODE_ERROR, USER_NOT_EXISTS } from './constants';
 import { ClientAuthGuard } from '../auth/client-auth.guard';
 import { Response } from 'express';
 import { COOKIE_MAX_AGE_MILL_SECS } from '../constants';
@@ -43,7 +43,9 @@ export class UsersController {
     try {
       await this.smsHistoryService.verify(loginDto.mobile, loginDto.type, loginDto.smsCode);
       const user = await this.clientsService.findByMobile(loginDto.mobile);
+      let firstLogin = false;
       if (!user) {
+        firstLogin = true;
         const user = new CreateClientDto();
         user.mobile = loginDto.mobile;
         await this.clientsService.create(user);
@@ -52,12 +54,15 @@ export class UsersController {
       response.cookie('mobile', confoundMobile(mobile), { maxAge: COOKIE_MAX_AGE_MILL_SECS });
       session.user = { mobile: confoundMobile(mobile) };
       await session.save();
+      return {
+        firstLogin,
+      }
     } catch (e) {
       console.error(e);
       this.logger.error(e.message);
       session.user = null;
       response.clearCookie('username');
-      throw new HttpException(COMMON_LOGIN_ERROR, 403);
+      throw new HttpException(e.message, 403);
     }
   }
 
@@ -65,7 +70,7 @@ export class UsersController {
   async logout(@Session() session, @Res({ passthrough: true }) res) {
     session.user = null;
     res.clearCookie('mobile');
-    res.status(302).redirect('/home');
+    res.status(302).redirect('/login');
   }
 
   @UseGuards(ClientAuthGuard)

@@ -24,6 +24,9 @@ export class Tools {
   @Column("int", { name: "index" })
   public index: number;
 
+  @Column("tinyint", { name: "enabled" })
+  public enabled: boolean;
+
   @Column("datetime", {
     name: "created_at",
     nullable: true,

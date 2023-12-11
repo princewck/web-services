@@ -11,7 +11,7 @@ export class ToolsUserController {
   @Get()
   findAll(@Query('page') page, @Query('pageSize') pageSize, @Query('cid') cid) {
     console.log('cid', cid);
-    return this.toolsService.findAll(page, pageSize, cid ? { categoryId: +cid } : void 0);
+    return this.toolsService.findAll(page, pageSize, cid ? { categoryId: +cid, enabled: true } : { enabled: true });
   }
 
   @Get(':tid')

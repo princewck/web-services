@@ -28,7 +28,7 @@ export class SmsHistoryService {
 
   /** 取最近一条有效消息 */
   findByMobileAndType(mobile: string, type: string) {
-    return this.smsHistoryRepository.findOneOrFail({ where: { mobile, type, deletedAt: null }, order: { updateAt: 'DESC' } });
+    return this.smsHistoryRepository.findOne({ where: { mobile, type, deletedAt: null }, order: { updateAt: 'DESC' } });
   }
 
   update(id: number, updateSmsHistoryDto: UpdateSmsHistoryDto) {
@@ -37,7 +37,7 @@ export class SmsHistoryService {
 
   /** 校验验证码 */
   async verify(mobile: string, type: SMS_TYPE, code: string) {
-    if (mobile?.endsWith('0570') && mobile?.startsWith('185')) {
+    if (process.env.NODE_ENV === 'development' && mobile?.endsWith('0570') && mobile?.startsWith('185')) {
       return true;
     }
     const exists = await this.findByMobileAndType(mobile, type);
@@ -59,7 +59,7 @@ export class SmsHistoryService {
     dto.verifyCode = verifyCode;
     dto.deletedAt = new Date();
     await this.update(exists.id, dto);
-    return  { verifyCode };
+    return { verifyCode };
   }
 
   /**
@@ -72,7 +72,7 @@ export class SmsHistoryService {
       start: dayjs().startOf('day').format('YYYY-MM-DD HH:mm:ss'),
       end: dayjs().startOf('day').add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
     }
-    const todaySMS = await this.smsHistoryRepository.find({
+    const todaySMS = await this.smsHistoryRepository.findOne({
       where: {
         createdAt: Between(today.start, today.end),
         mobile,
@@ -82,11 +82,10 @@ export class SmsHistoryService {
         createdAt: 'DESC',
       }
     });
-    if (todaySMS?.length > 10) {
+    if (!todaySMS) {
       throw new HttpException({ message: '消息发送次数过多', reason: 'reach_limt' }, 403);
     }
-    const lastTime = todaySMS?.[0];
-    if (lastTime && dayjs(lastTime.createdAt).add(55, 'seconds').isAfter(dayjs())) {
+    if (todaySMS && dayjs(todaySMS.createdAt).add(55, 'seconds').isAfter(dayjs())) {
       throw new HttpException({
         message: '消息发送频率过快',
         reason: 'rate_control',

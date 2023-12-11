@@ -13,7 +13,7 @@
     "stop:aws": "pm2 stop webservice",
     "start": "NODE_ENV=production nest start",
     "start:dev": "NODE_ENV=development PORT=3006 nest start --watch",
-    "start:debug": "nest start --debug --watch",
+    "start:debug": "NODE_ENV=development PORT=3006 nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",

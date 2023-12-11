@@ -18,11 +18,10 @@ export class ToolsService {
   }
 
   async findAll(page = 1, pageSize = DEFAULT_PAGE_SIZE, filter) {
-    console.log('filter', filter);
     const [templates, total] = await this.toolRepository.findAndCount({
       skip: (page - 1) * pageSize,
       take: pageSize,
-      where: filter,
+      where: {...filter },
     });
     return new PaginateList({ data: templates, total, pageSize, page });
   }
