@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import Dysmsapi20170525, * as $Dysmsapi20170525 from '@alicloud/dysmsapi20170525';
 import OpenApi, * as $OpenApi from '@alicloud/openapi-client';
 import Util, * as $Util from '@alicloud/tea-util';
@@ -12,6 +12,9 @@ import * as statementReadonly from './statement.readonly.json';
 import * as statementReadonlyWithList from './statement.readonly_enable_list.json';
 import getStatementPut from './statement.put';
 import imageseg20191230, * as $imageseg20191230 from '@alicloud/imageseg20191230';
+import * as ViapiClient from '@alicloud/viapi20230117';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 export enum STS_POLICY_TYPE {
   FULL = 'full',
@@ -41,6 +44,42 @@ function getStatement(type: STS_POLICY_TYPE, filename?: string) {
   return getPolicy(type);
 }
 
+// 使用 redis 做限流
+const qpsRunningCache: any = {};
+const qpsWaitingQueue: (() => Promise<any>)[] = [];
+// fn 必须不一样
+const runInQPSLimit = (key: string, limit: number = 2, fn: () => Promise<any>): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const running = qpsRunningCache[key];
+    if (running === undefined) qpsRunningCache[key] = [];
+    if ((running?.length ?? 0) < limit) {
+      const promise = fn().then(res => {
+        qpsRunningCache[key] = qpsRunningCache[key]?.filter(i => i !== promise);
+        resolve(res);
+        return res;
+      });
+      qpsRunningCache[key].push(promise);
+      const check = () => {
+        Promise.any(qpsRunningCache[key].slice()).then(() => {
+          const fn2 = qpsWaitingQueue.shift();
+          if (fn2) {
+            qpsRunningCache[key].push(fn2().then((res) => {
+              if (fn2 === fn) {
+                resolve(res);
+              } else {
+                check();                
+              }
+            }));
+          }
+        });
+      }
+      check();
+    } else {
+      qpsWaitingQueue.push(fn);
+    }
+  })
+}
+
 
 @Injectable()
 export class AliyunService {
@@ -52,6 +91,7 @@ export class AliyunService {
 
   constructor(
     private readonly configService: ConfigService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {
     this.accessKeyId = this.configService.get('ALI_ACCESS_KEY_ID');
     this.accessKeySecret = this.configService.get('ALI_ACCESS_KEY_SECRET');
@@ -180,20 +220,27 @@ export class AliyunService {
   }
 
   /** 视觉智能, 通用抠图 */
-  async segmentCommon(imageURL: string, hd = false): Promise<{ imageURL: string }> {
+  async segmentCommon(imageUrl: string, hd = false): Promise<{ imageURL?: string; requestId?: string }> {
     const client = this.createClient();
-    let segmentBodyRequest = hd ? new $imageseg20191230.SegmentHDCommonImageRequest({ imageURL })
+    let segmentBodyRequest = hd ? new $imageseg20191230.SegmentHDCommonImageRequest({ imageUrl })
       : new $imageseg20191230.SegmentCommonImageRequest({
-        imageURL,
+        imageURL: imageUrl,
       });
     let runtime = new $Util.RuntimeOptions({});
+    const res = await this.cacheManager.set('testkey1' + Math.random() * 1000, 'value1111', { ttl: 10000 });
+    console.log('cache set info', res);
     try {
       // 复制代码运行请自行打印 API 的返回值
       let res;
       if (!hd) {
+        // TODO: 并发度需要根据部署情况和返回速度进行调整
         res = await client.segmentCommonImageWithOptions(segmentBodyRequest, runtime);
       } else {
+        // 检查可用余额, 并扣费, 否则提示充值
         res = await client.segmentHDCommonImageWithOptions(segmentBodyRequest, runtime);
+      }
+      if (hd) {
+        return res?.body;
       }
       return res?.body?.data;
     } catch (error) {
@@ -201,11 +248,29 @@ export class AliyunService {
       Util.assertAsString(error.message);
       console.error(error);
       if (!hd && error.data.Code === 'InvalidFile.Resolution') {
-        console.log('使用高清抠图');
+        console.log('使用高清抠图', imageUrl);
         // FIXME 高清抠图为收费功能
-        return await this.segmentCommon(imageURL, true);
+        // throw new HttpException('图片分辨率较高, 暂不支持', 422);
+        return await this.segmentCommon(imageUrl, true);
       }
     }
+  }
+
+  async getAsyncJobResult(requestId: string) {
+    // const client = this.createClient();
+    let config = new $OpenApi.Config({
+      accessKeyId: this.accessKeyId,
+      accessKeySecret: this.accessKeySecret,
+    });
+    // Endpoint 请参考 https://api.aliyun.com/product/imageseg
+    // config.endpoint = `imageseg.cn-shanghai.aliyuncs.com`;
+    // const client = new $OpenApi.default(config);
+    const client = this.createClient();
+    // const client = new ViapiClient.default(config);
+    const getAsyncJobResultRequest = new $imageseg20191230.GetAsyncJobResultRequest({
+      jobId: requestId,
+    });
+    return client.getAsyncJobResult(getAsyncJobResultRequest);
   }
 
   private ossCache: Map<string, {
@@ -265,6 +330,16 @@ export class AliyunService {
     // Endpoint 请参考 https://api.aliyun.com/product/imageseg
     config.endpoint = `imageseg.cn-shanghai.aliyuncs.com`;
     return new imageseg20191230(config);
+  }
+
+  private createOldClient() {
+    let config = new $OpenApi.Config({
+      accessKeyId: this.accessKeyId,
+      accessKeySecret: this.accessKeySecret,
+    });
+    // Endpoint 请参考 https://api.aliyun.com/product/imageseg
+    config.endpoint = `viapi.cn-shanghai.aliyuncs.com`;
+    return new ViapiClient.default(config);
   }
 
 }

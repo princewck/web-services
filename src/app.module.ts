@@ -23,9 +23,11 @@ import { TestModule } from './test/test.module';
 import { isDev } from './utils';
 import { AliyunController } from './aliyun/aliyun.controller';
 import { SmsHistoryModule } from './sms-history/sms-history.module';
+import { CacheModule } from '@nestjs/cache-manager';
 import { PinyinModule } from './pinyin/pinyin.module';
+import * as redisStore from 'cache-manager-redis-store';
 
-console.log('isDev', isDev);
+console.log('isDev', redisStore);
 
 @Module({
   imports: [
@@ -37,6 +39,15 @@ console.log('isDev', isDev);
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
+    }),
+    CacheModule.register<any>({
+      isGlobal: true,
+      store: redisStore,
+      host: '139.224.190.109',
+      port: '6379',
+      // url: 'redis://139.224.190.109:6379',
+      password: 'm2sywngSaCk%>s+',
+      ttl: 60,
     }),
     GlobalModule,
     GptModule,
