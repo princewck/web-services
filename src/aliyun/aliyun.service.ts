@@ -3,7 +3,7 @@ import Dysmsapi20170525, * as $Dysmsapi20170525 from '@alicloud/dysmsapi20170525
 import OpenApi, * as $OpenApi from '@alicloud/openapi-client';
 import Util, * as $Util from '@alicloud/tea-util';
 import { ConfigService } from '@nestjs/config';
-import { isDev } from '../utils';
+import { isDev, sleep } from '../utils';
 import { SEND_SMD_FAILED } from './constants';
 import * as OSS from 'ali-oss';
 import { STS } from 'ali-oss';
@@ -15,6 +15,9 @@ import imageseg20191230, * as $imageseg20191230 from '@alicloud/imageseg20191230
 import * as ViapiClient from '@alicloud/viapi20230117';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { Tasks } from '../models';
+import { TasksService } from '../tasks/tasks.service';
+import { TaskStatus } from '../models/entities/Tasks';
 
 export enum STS_POLICY_TYPE {
   FULL = 'full',
@@ -44,41 +47,7 @@ function getStatement(type: STS_POLICY_TYPE, filename?: string) {
   return getPolicy(type);
 }
 
-// 使用 redis 做限流
-const qpsRunningCache: any = {};
-const qpsWaitingQueue: (() => Promise<any>)[] = [];
-// fn 必须不一样
-const runInQPSLimit = (key: string, limit: number = 2, fn: () => Promise<any>): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    const running = qpsRunningCache[key];
-    if (running === undefined) qpsRunningCache[key] = [];
-    if ((running?.length ?? 0) < limit) {
-      const promise = fn().then(res => {
-        qpsRunningCache[key] = qpsRunningCache[key]?.filter(i => i !== promise);
-        resolve(res);
-        return res;
-      });
-      qpsRunningCache[key].push(promise);
-      const check = () => {
-        Promise.any(qpsRunningCache[key].slice()).then(() => {
-          const fn2 = qpsWaitingQueue.shift();
-          if (fn2) {
-            qpsRunningCache[key].push(fn2().then((res) => {
-              if (fn2 === fn) {
-                resolve(res);
-              } else {
-                check();                
-              }
-            }));
-          }
-        });
-      }
-      check();
-    } else {
-      qpsWaitingQueue.push(fn);
-    }
-  })
-}
+
 
 
 @Injectable()
@@ -91,7 +60,8 @@ export class AliyunService {
 
   constructor(
     private readonly configService: ConfigService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    // @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly taskService: TasksService,
   ) {
     this.accessKeyId = this.configService.get('ALI_ACCESS_KEY_ID');
     this.accessKeySecret = this.configService.get('ALI_ACCESS_KEY_SECRET');
@@ -191,7 +161,7 @@ export class AliyunService {
 
 
   /** 视觉智能, 人体抠图 */
-  async segmentBody(imageURL: string, hd = false): Promise<{ imageURL: string }> {
+  async segmentBody(imageURL: string, hd = false, user?: any): Promise<{ imageURL: string }> {
     const client = this.createClient();
     let segmentBodyRequest = hd ? new $imageseg20191230.SegmentHDBodyRequest({ imageURL })
       : new $imageseg20191230.SegmentBodyRequest({
@@ -220,38 +190,92 @@ export class AliyunService {
   }
 
   /** 视觉智能, 通用抠图 */
-  async segmentCommon(imageUrl: string, hd = false): Promise<{ imageURL?: string; requestId?: string }> {
+  async segmentCommon(imageUrl: string, hd = false, user?: any): Promise<{ imageURL?: string; requestId?: string }> {
     const client = this.createClient();
     let segmentBodyRequest = hd ? new $imageseg20191230.SegmentHDCommonImageRequest({ imageUrl })
       : new $imageseg20191230.SegmentCommonImageRequest({
         imageURL: imageUrl,
       });
     let runtime = new $Util.RuntimeOptions({});
-    const res = await this.cacheManager.set('testkey1' + Math.random() * 1000, 'value1111', { ttl: 10000 });
-    console.log('cache set info', res);
+    const segCommonTaskName = `segment:common:${hd}`;
+    const task = new Tasks();
+    task.createdAt = Date.now();
+    task.deletedAt = Date.now() + 1000 * 30;// 30秒后丢弃任务
+    task.nodeName = this.configService.get('NODE_NAME');
+    task.taskName = segCommonTaskName;
+    task.status = TaskStatus.INITIAL;
+    task.desc = `${user?.mobile??'default'}::${imageUrl}`;
+    const segmentTask = await this.taskService.create(task);
+
+    const getTaskStatus = async (): Promise<TaskStatus> => {
+      const task = await this.taskService.findOne(segmentTask.id);
+      return task.status;
+    }
+    const currentTooBusy = async (): Promise<boolean> => {
+      console.time('testpending');
+      const result = await this.taskService.pendingStatus(segCommonTaskName, hd ? 2 : 5);
+      console.timeEnd('testpending');
+      return result;
+    }
+    console.time('testbusy');
+    const busy = await currentTooBusy();
+    console.timeEnd('testbusy');
+    // 5s 都处理不完, 拒绝客户端, 客户端稍后重试
+    if (busy) {
+      throw new HttpException('service is too busy!!', 400);
+    }
+    let status = await getTaskStatus();
+    let retryCount = 0;
+
+    // 最大请求挂起时间 20s
+    while (status !== TaskStatus.PROCESSING) {
+      if (retryCount >= 150) {
+        throw new HttpException('service is too busy now', 400);
+      }
+      await sleep(200); // 一秒后重试
+      retryCount += 1;
+      status = await getTaskStatus();
+    }
+    const finishTask = async () => {
+      console.time('finishTask');
+      await this.taskService.finishTask(segmentTask.id);
+      console.timeEnd('finishTask');
+    }
     try {
       // 复制代码运行请自行打印 API 的返回值
       let res;
       if (!hd) {
         // TODO: 并发度需要根据部署情况和返回速度进行调整
+        console.time('segmentcommon');
         res = await client.segmentCommonImageWithOptions(segmentBodyRequest, runtime);
+        console.timeEnd('segmentcommon');
       } else {
         // 检查可用余额, 并扣费, 否则提示充值
         res = await client.segmentHDCommonImageWithOptions(segmentBodyRequest, runtime);
       }
+      // await updateConcurrentCount();
+      // await this.cacheManager.set(globalConcurrentRedisKey, Math.max(concurrentCount - 1, 0), cacheOptions);
       if (hd) {
+        await finishTask();
         return res?.body;
       }
+      await finishTask();
       return res?.body?.data;
     } catch (error) {
       // 如有需要，请打印 error
       Util.assertAsString(error.message);
       console.error(error);
-      if (!hd && error.data.Code === 'InvalidFile.Resolution') {
+      // await updateConcurrentCount();
+      // await this.cacheManager.set(globalConcurrentRedisKey, Math.max(concurrentCount - 1, 0), cacheOptions);
+      if (!hd && error?.data?.Code === 'InvalidFile.Resolution') {
         console.log('使用高清抠图', imageUrl);
         // FIXME 高清抠图为收费功能
         // throw new HttpException('图片分辨率较高, 暂不支持', 422);
-        return await this.segmentCommon(imageUrl, true);
+        await finishTask();
+        return await this.segmentCommon(imageUrl, true, user);
+      } else {
+        await finishTask();
+        throw new HttpException('操作失败', 400);
       }
     }
   }

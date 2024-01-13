@@ -52,7 +52,7 @@ export class UsersController {
       }
       const { mobile } = user;
       response.cookie('mobile', confoundMobile(mobile), { maxAge: COOKIE_MAX_AGE_MILL_SECS });
-      session.user = { mobile: confoundMobile(mobile) };
+      session.user = { mobile: mobile };
       await session.save();
       return {
         firstLogin,

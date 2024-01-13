@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { LoggerMiddleware } from './common/middlewares/logger';
 import { AuthModule } from './auth/auth.module';
 import { AdminsModule } from './admins/admins.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WepayController } from './wechat/wechat.controller';
@@ -18,19 +19,21 @@ import { GptTemplateModule } from './gpt-template/gpt-template.module';
 import { ToolCategoryModule } from './tool-category/tool-category.module';
 import { ToolsModule } from './tools/tools.module';
 import { UsersModule } from './users/users.module';
-import { AliyunService } from './aliyun/aliyun.service';
 import { TestModule } from './test/test.module';
 import { isDev } from './utils';
-import { AliyunController } from './aliyun/aliyun.controller';
 import { SmsHistoryModule } from './sms-history/sms-history.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { PinyinModule } from './pinyin/pinyin.module';
+import { TasksModule } from './tasks/tasks.module';
 import * as redisStore from 'cache-manager-redis-store';
+import { AliyunModule } from './aliyun/aliyun.module';
+import { JobModule } from './jobs/job.module';
 
 console.log('isDev', redisStore);
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     AuthModule, AdminsModule,
     WepayModule,
     TypeOrmModule.forRoot({
@@ -50,6 +53,7 @@ console.log('isDev', redisStore);
       ttl: 60,
     }),
     GlobalModule,
+    JobModule,
     GptModule,
     GptTemplateModule,
     ToolCategoryModule,
@@ -58,9 +62,11 @@ console.log('isDev', redisStore);
     ...(isDev ? [TestModule] : []),
     SmsHistoryModule,
     PinyinModule,
+    TasksModule,
+    AliyunModule,
   ],
-  controllers: [AppController, WepayController, AliyunController],
-  providers: [AppService, AliyunService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule implements NestModule {
 

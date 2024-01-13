@@ -31,12 +31,12 @@ export class AliyunClientController {
   }
 
   @Post('api/imageseg')
-  async imageSegment(@Body() body) {
+  async imageSegment(@Body() body, @Session() session) {
     const { image, type, hd = false } = body;
     if (!image) throw new HttpException({ message: 'invalid image' }, 403);
     if (!['body', 'common'].includes(type)) throw new HttpException({ message: 'invalid type' }, 403);
-    if (type === 'body') return await this.aliyunService.segmentBody(image, hd);
-    if (type === 'common') return await this.aliyunService.segmentCommon(image, hd);
+    if (type === 'body') return await this.aliyunService.segmentBody(image, hd, session?.user);
+    if (type === 'common') return await this.aliyunService.segmentCommon(image, hd, session?.user);
   }
 
 }

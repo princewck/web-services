@@ -29,3 +29,7 @@ export const md5 = (origin: string) => {
   const hash = createHash('md5');
   return hash.update(origin).digest('base64');
 }
+
+export const sleep = (timeMillSecs: number) => {
+  return new Promise(resolve => setTimeout(resolve, timeMillSecs));
+}

@@ -1,4 +1,6 @@
 export default () => ({
+  MASTER_NODE: true, // 分布式部署, 只能有一个 master, 处理定时任务等工作
+  NODE_NAME: 'master', // 用于分发请求, 请使用不一样的名字, 多个实例用一样名字会出错
   MOCK_OPENID: 'xxxxxxxxxx', // 测试用, 不是必须
   WXPAY_MCHID: '1538509741',
   WXPAY_APIV3_SECRET: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', // 32 位

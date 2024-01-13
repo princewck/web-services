@@ -7,3 +7,4 @@ export { GptConversations } from './entities/GptConversations';
 export { ToolCategories } from './entities/ToolCategories';
 export { Tools } from './entities/Tools';
 export { Clients } from './entities/Clients';
+export { Tasks } from './entities/Tasks';
