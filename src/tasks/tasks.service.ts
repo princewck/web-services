@@ -33,7 +33,6 @@ export class TasksService {
       const processingRedisKey = `task_processing:${taskName}`;
       const processing = await this.cacheManager.get(processingRedisKey);
       if (processing === 'true') {
-        console.log('already processing, skip');
         return;
       }
       await this.cacheManager.set(processingRedisKey, 'true', { ttl: 30 });

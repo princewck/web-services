@@ -331,7 +331,7 @@ export class AliyunService {
     });
     try {
       /** 不能使用主账号调用, 注意使用子账号的 ak, sk, 并且为子账号授权 AliyunSTSAssumeRoleAccess */
-      const res = await sts.assumeRole(mintrole, JSON.stringify(policy), 60 * this.configService.get('OSS_EXPIRE_MINUTES'));
+      const res = await sts.assumeRole(mintrole, JSON.stringify(policy), 60 * this.configService.get('OSS_EXPIRE_MINUTES') ?? 15);
       return {
         accessKeyId: res.credentials.AccessKeyId,
         accessKeySecret: res.credentials.AccessKeySecret,

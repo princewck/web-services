@@ -1,4 +1,4 @@
-export default (filename: string): any => ({
+export default (path: string): any => ({
   "Version": "1",
   "Statement": [
     {
@@ -14,7 +14,7 @@ export default (filename: string): any => ({
     {
       "Effect": "Allow",
       "Action": "oss:PutObject",
-      "Resource": ["acs:oss:*:*:minnuo/" + filename],
+      "Resource": ["acs:oss:*:*:minnuo/" + path],
     }
   ]
 });
