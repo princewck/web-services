@@ -41,33 +41,110 @@
 ## Installation
 
 ```bash
-$ npm install
+$ yarn
 ```
 
 ## Running the app
 
 ```bash
 # development
-$ npm run start
+$ yarn start
 
 # watch mode
-$ npm run start:dev
+$ yarn start:dev
 
 # production mode
-$ npm run start:prod
+$ yarn start:prod
 ```
+
+## Dev
+### 如何调试微信 API
+使用 [NPS](https://ehang-io.github.io/nps/#/use?id=%e9%85%8d%e7%bd%ae%e6%96%87%e4%bb%b6%e8%af%b4%e6%98%8e) 进行内网穿透, 将微信支持等依赖域名和 Https 的接口代理到穿透的访问点, 实现服务器接口直接代理到本地 server 的能力
+
+- 安装教程: 省略
+- 准备
+阿里云安全组开放以下端口
+8080, 8081, 8024
+- 配置如下
+
+```
+# npc.conf
+appname = nps
+#Boot mode(dev|pro)
+runmode = dev
+
+#HTTP(S) proxy port, no startup if empty
+http_proxy_ip=0.0.0.0
+http_proxy_port=8081
+#https_proxy_port=443
+#https_just_proxy=false
+#default https certificate setting
+#https_default_cert_file=conf/server.pem
+#https_default_key_file=conf/server.key
+
+##bridge
+bridge_type=tcp
+bridge_port=8024
+bridge_ip=0.0.0.0
+
+```
+- 启动服务器 nps
+```docker rm nps
+docker run  --name nps --net=host -v /root/nps_conf:/conf ffdfgdfg/nps
+```
+> 直接用 /root/start_nps.sh
+
+- 启动客户端 npc
+```
+# vkey 是 nps 管理后台 (http://www.mintools.pro:8080) 添加的 客户端
+./npc -server 139.224.190.109:8024 -vkey=zg4bjfjzrin696pl
+
+```
+
+- 添加代理
+在 TCP 隧道模块添加代理
+服务端端口: 外网端口, 比如 8004, 则访问 www.mintools.pro:8001
+目标: 客户端的本地 IP:PORT, 如本地启动的服务为 127.0.0.1:3006
+
+- nginx 的对应配置
+```nginx
+upstream npsgateway {
+  server 127.0.0.1:8004;
+}
+
+server {
+  server_name www.mintools.pro;
+  listen 443;
+
+  # 此处省略
+
+  location ^~/api/pay {
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_buffering off;
+    rewrite ^/api/pay/(.*)$ /$1 break;
+    proxy_pass http://npsgateway;
+  }
+}
+```
+- 使用上述配置后, 访问  https://www.mintools.pro/api/pay/xxx 时, 实际访问的是 localhost:3006/xxx
+- 这样我们可以用上述 entrypoint 作为微信的回调地址, 调用本地服务, 实现快速调试
+
+**注意**: 使用完成后及时关闭内网穿透隧道, 防止安全问题
+
 
 ## Test
 
 ```bash
 # unit tests
-$ npm run test
+$ yarn test
 
 # e2e tests
-$ npm run test:e2e
+$ yarn test:e2e
 
 # test coverage
-$ npm run test:cov
+$ yarn test:cov
 ```
 
 ## Support
