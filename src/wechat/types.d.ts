@@ -45,7 +45,7 @@ export type WechatOrderCreatePayload = {
   }
 };
 
-export type WechatOrderCreateRequetPayload = Pick<WechatOrderCreatePayload, 'description' | 'out_trade_no' | 'amount'>
+export type WechatOrderCreateRequetPayload = Pick<WechatOrderCreatePayload, 'description' | 'amount'>
 
 export type WechatCode2SessionPayload = {
   appid: string;

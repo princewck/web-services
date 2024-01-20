@@ -11,6 +11,7 @@ import { SmsHistoryModule } from '../sms-history/sms-history.module';
   imports: [
     TypeOrmModule.forFeature([Clients]),
     SmsHistoryModule,
-  ]
+  ],
+  exports: [UsersService]
 })
 export class UsersModule { }

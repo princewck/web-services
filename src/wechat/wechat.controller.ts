@@ -1,31 +1,62 @@
-import { All, Controller, Param, Post, Request } from '@nestjs/common';
+import { All, Controller, HttpException, Param, Post, Req, Request, Res, Session } from '@nestjs/common';
 import { WechatOrderCreateRequetPayload } from './types';
 import { WepayService } from './wechat.service';
+import { Response } from 'express';
+import { UsersService } from '../users/users.service';
 
 @Controller('wechat')
 export class WepayController {
 
   constructor(
-    private readonly wepayService: WepayService
+    private readonly wepayService: WepayService,
+    private readonly userService: UsersService,
   ) { }
 
-  @Post('wxpay/order')
-  createOrder(@Request() req) {
-    // FIXME: openid should be removed later
-    const { description, out_trade_no = Date.now().toString(), total = 9999999, openid } = req.body;
+  //https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_webpage_authorization.html#0
+  @All('authorize/cb')
+  async authorizeCallback(@Req() req, @Res({ passthrough: true }) res: Response, @Session() session) {
+    console.log('authorize cb', req.query);
+    const code = req.query?.code;
+    const state = req.query.state;
+
+    // 使用 code 换取 openid
+    if (code && state?.includes('www.mintools.pro')) {
+      const openId = await this.wepayService.getOpenIdInWechatBrowserFromCode(code);
+      console.log('openid', openId);
+      console.log('session.user', session.user);
+      await this.userService.updateOpenId(session.user?.id, openId);
+      session.user = { ...session.user, openid: openId };
+      res.cookie('_registered_wx_user', 1);
+      console.log('redirect url', state);
+      return res.redirect(decodeURIComponent(state));
+    }
+
+    return req.query?.echostr; // 告知微信服务器, 服务器地址有效
+  }
+
+  @Post('wxpay/order/jsapi')
+  async createOrder(@Request() req, @Session() session) {
+    // type = web | miniapp 网页和小程序使用不同的 appid
+    const { description, total = 9999999, type } = req.body;
     console.log('req.body', req.body);
     const payload: WechatOrderCreateRequetPayload = {
       description,
-      out_trade_no,
       amount: {
         total: Math.floor(total * 100),
         currency: 'CNY'
       },
     };
-    return this.wepayService.createPayment(payload, openid);
+    if (!session?.user?.mobile) {
+      throw new HttpException('need authorization', 401);
+    }
+    try {
+      return await this.wepayService.createPayment(session.user, payload, type);
+    } catch (e) {
+      throw new HttpException(e, 400);
+    }
   }
 
-  @Post('wxpay/callback')
+  @Post('/wxpay/noti')
   payCallback(@Request() req) {
     return this.wepayService.payCallback(req.body);
   }

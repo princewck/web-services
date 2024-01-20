@@ -28,4 +28,8 @@ export class Clients {
 
   @Column("date", { name: "updated_at" })
   public updatedAt: string;
+
+  // 用户余额, 虚拟币, 不允许小数点
+  @Column('bigint', { name: 'balance' })
+  public balance: number;
 }

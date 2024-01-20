@@ -33,6 +33,17 @@ export class UsersService {
     return result;
   }
 
+  async updateOpenId(id: number, openId: string = '') {
+    try {
+      if (openId) {
+        await this.usersRepository.update({ id }, { openId });
+      }
+    } catch (e: any) {
+      console.error('设置 openid 失败', id, openId);
+      throw e;
+    }
+  }
+
   findAll() {
     return `This action returns all clients`;
   }

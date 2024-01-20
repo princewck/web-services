@@ -52,7 +52,12 @@ export class UsersController {
       }
       const { mobile } = user;
       response.cookie('mobile', confoundMobile(mobile), { maxAge: COOKIE_MAX_AGE_MILL_SECS });
-      session.user = { mobile: mobile };
+      if (user.openId) {
+        response.cookie('_registered_wx_user', 1, { maxAge: COOKIE_MAX_AGE_MILL_SECS });
+      } else {
+        response.clearCookie('_registered_wx_user');
+      }
+      session.user = { mobile: mobile, id: user.id, openid: user.openId };
       await session.save();
       return {
         firstLogin,
@@ -70,6 +75,7 @@ export class UsersController {
   async logout(@Session() session, @Res({ passthrough: true }) res) {
     session.user = null;
     res.clearCookie('mobile');
+    res.clearCookie('_registered_wx_user');
     res.status(302).redirect('/login');
   }
 

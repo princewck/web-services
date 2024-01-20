@@ -1,13 +1,19 @@
 import { HttpService } from '@nestjs/axios';
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { HttpException, Inject, Injectable, Logger, Session } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { catchError, first } from 'rxjs/operators';
 import { Rsa } from '../utils/rsa';
-import { JSAPI_CREATE_ORDER, JSCODE_TO_SESSION } from './constants';
+import { GET_ACCESS_TOKEN, GET_AUTH_ACCESS_TOKEN, JSAPI_CREATE_ORDER, JSCODE_TO_SESSION, wxApiwithParams } from './constants';
 import { WechatCode2SessionPayload, WechatCode2SessionResponse, WechatOrderCreatePayload, WechatOrderCreateRequetPayload, WXPaymentCallbackEncryptedResponse, WXPaymentCallbackResponse } from './types';
 import { createDecipheriv } from 'crypto';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import axios from 'axios';
+import { UsersService } from '../users/users.service';
+
+export type APPIDType = 'web' | 'miniapp';
 
 @Injectable()
 export class WepayService {
@@ -16,19 +22,62 @@ export class WepayService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-  ) { }
+    private readonly userService: UsersService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
+
+  async getAccessToken(mobile: string) {
+    if (!mobile) {
+      throw new Error('get user info failed');
+    }
+    const appId = this.configService.get('WX_APP_ID_WEB');
+    const secret = this.configService.get('WX_APP_SECRET_WEB');
+    const apiUrl = wxApiwithParams(GET_ACCESS_TOKEN, appId, secret);
+    const cacheKey = `WEB_ACCESS_TOKEN:${mobile}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      console.log('cached token', cached);
+      return cached;
+    }
+    const token = await axios.get(apiUrl).then(async (res: any) => {
+      console.log('axios res', res.data);
+      const { access_token, expires_in, errcode } = res.data ?? {};
+      if (errcode === 40164) {
+        return Promise.reject(new Error('当前服务 IP 不在公众号的白名单中'));
+      }
+      await this.cacheManager.set(cacheKey, access_token, { ttl: expires_in * .8 });
+      return access_token;
+    });
+    console.log('token', token);
+    return token;
+  }
+
+  // 微信浏览器里获取用户 openId
+  async getOpenIdInWechatBrowserFromCode(code: string) {
+    try {
+      const appId = this.configService.get('WX_APP_ID_WEB');
+      const secret = this.configService.get('WX_APP_SECRET_WEB');
+      const url = wxApiwithParams(GET_AUTH_ACCESS_TOKEN, appId, secret, code);
+      const response = await axios.get(url).then(res => res.data);
+      console.log(response, 'openId', 'access_token=', response.access_token);
+      return response.openid;
+    } catch (e) {
+      throw new Error(e);
+    }
+  }
 
 
-  async createPayment(payload: WechatOrderCreateRequetPayload, openid: string) {
+  async createPayment(user: any, payload: WechatOrderCreateRequetPayload, type?: 'web' | 'miniapp') {
     // FIX: remove open id params
-    const openId = openid || this.getUserOpenId();
+    // const openId = await this.getUserOpenId(user, type);
     const randomOrderId = 'wck-' + Date.now();
     const notifyURL = this.configService.get('WXPAY_NOTIFY_URL');
     const totalAmount = +Number(Math.random()).toFixed(2);
     this.logger.log('创建订单, 金额: %d', totalAmount);
     this.logger.log('创建订单, ID: %s', randomOrderId);
+    const appId = this.configService.get(type === 'web' ? 'WX_APP_ID_WEB' : 'WX_APP_ID');
     const params: WechatOrderCreatePayload = Object.assign({
-      appid: this.configService.get('WX_APP_ID'),
+      appid: appId,
       mchid: this.configService.get('WXPAY_MCHID'),
       description: '',
       out_trade_no: randomOrderId,
@@ -38,9 +87,10 @@ export class WepayService {
         currency: ''
       },
       payer: {
-        openid: openId,
+        openid: user.openid,
       },
     }, payload);
+    console.log('create with openid ', user.openid);
     const authorization = this.getAuthorization('POST', JSAPI_CREATE_ORDER, params);
     const res = await firstValueFrom(this.httpService.post<{ prepay_id: string }>(JSAPI_CREATE_ORDER, params, {
       headers: {
@@ -54,7 +104,7 @@ export class WepayService {
     ));
     this.logger.log(res.data, res.status, res.statusText);
     const { prepay_id } = res.data;
-    return await this.getPaySignature(prepay_id);
+    return await this.getPaySignature(prepay_id, appId);
   }
 
   // 微信支付成功回调
@@ -90,11 +140,12 @@ export class WepayService {
         message: '失败',
       }, 403);
     }
-    console.log(result);
+    console.log('支付成功回调:', result);
     return result;
   }
 
   // use client-side code to login, get open_id and session_key
+  // 暂时只支持了小程序, app secret 是小程序的
   async createSession(code: string) {
     const params: WechatCode2SessionPayload = {
       appid: this.configService.get('WX_APP_ID'),
@@ -112,11 +163,6 @@ export class WepayService {
     return res.data;
   }
 
-  // FIXME: fix this later
-  private getUserOpenId() {
-    return this.configService.get('MOCK_OPENID');
-  }
-
   private wepaySign(method: string, timestamp: string | number, nonceStr: string, url: string, body: any) {
     const urlInfo = new URL(url);
     const _url = urlInfo.pathname + urlInfo.search; // 踩坑
@@ -127,16 +173,16 @@ export class WepayService {
     return this.commonSignWithArrayValue(struct);
   }
 
-  private getPaySignature(prepayId: string) {
-    const appid = this.configService.get('WX_APP_ID');
+  private getPaySignature(prepayId: string, appId: string) {
     const timeStamp = Math.floor(Date.now() / 1000) + '';
     const nonceStr = this.getNonceStr();
     const pkg = `prepay_id=${prepayId}`;
     const signType = 'RSA';
     const paySign = this.commonSignWithArrayValue([
-      appid, timeStamp, nonceStr, pkg,
+      appId, timeStamp, nonceStr, pkg,
     ]);
     return {
+      appId,
       timeStamp,
       nonceStr,
       package: pkg,
