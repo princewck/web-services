@@ -28,6 +28,7 @@ import { TasksModule } from './tasks/tasks.module';
 import * as redisStore from 'cache-manager-redis-store';
 import { AliyunModule } from './aliyun/aliyun.module';
 import { JobModule } from './jobs/job.module';
+import { OrderModule } from './order/order.module';
 
 console.log('isDev', redisStore);
 
@@ -64,6 +65,7 @@ console.log('isDev', redisStore);
     PinyinModule,
     TasksModule,
     AliyunModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

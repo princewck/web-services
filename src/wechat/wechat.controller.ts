@@ -34,7 +34,7 @@ export class WepayController {
     return req.query?.echostr; // 告知微信服务器, 服务器地址有效
   }
 
-  @Post('wxpay/order/jsapi')
+  @Post('wxpay/order')
   async createOrder(@Request() req, @Session() session) {
     // type = web | miniapp 网页和小程序使用不同的 appid
     const { description, total = 9999999, type } = req.body;
@@ -50,15 +50,16 @@ export class WepayController {
       throw new HttpException('need authorization', 401);
     }
     try {
-      return await this.wepayService.createPayment(session.user, payload, type);
+      const payment = await this.wepayService.createPayment(session.user, payload, type);
+      return payment;
     } catch (e) {
       throw new HttpException(e, 400);
     }
   }
 
   @Post('/wxpay/noti')
-  payCallback(@Request() req) {
-    return this.wepayService.payCallback(req.body);
+  async payCallback(@Request() req) {
+    return await this.wepayService.payCallback(req.body);
   }
 
   @Post('session')

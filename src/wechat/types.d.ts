@@ -113,7 +113,7 @@ export type WXPaymentCallbackResponse = {
   },
   amount: {
     total: number;
-    currency: number;
+    currency: string;
     payer_total?: number;
     payer_currency?: string;
   },

@@ -12,6 +12,11 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import axios from 'axios';
 import { UsersService } from '../users/users.service';
+import { OrderService } from '../order/order.service';
+import { CreateOrderDto } from '../order/dto/create-order.dto';
+import { UpdateOrderDto } from '../order/dto/update-order.dto';
+import { md5 } from '../utils';
+import dayjs = require('dayjs');
 
 export type APPIDType = 'web' | 'miniapp';
 
@@ -23,8 +28,9 @@ export class WepayService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly userService: UsersService,
+    private readonly orderService: OrderService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) { }
 
   async getAccessToken(mobile: string) {
     if (!mobile) {
@@ -70,7 +76,10 @@ export class WepayService {
   async createPayment(user: any, payload: WechatOrderCreateRequetPayload, type?: 'web' | 'miniapp') {
     // FIX: remove open id params
     // const openId = await this.getUserOpenId(user, type);
-    const randomOrderId = 'wck-' + Date.now();
+    const createdAt = new Date();
+    const dateStr = dayjs(createdAt).format('YYYYMMDDHHmmss');
+    // 订单号: MT- 日期 - 用户身份字符 - 四位随机数
+    const randomOrderId = 'MT-' + dateStr + md5(user.mobile + 1)?.slice(0, 5) + (Math.floor(Math.random() * 1000) + 1000);
     const notifyURL = this.configService.get('WXPAY_NOTIFY_URL');
     const totalAmount = +Number(Math.random()).toFixed(2);
     this.logger.log('创建订单, 金额: %d', totalAmount);
@@ -104,11 +113,25 @@ export class WepayService {
     ));
     this.logger.log(res.data, res.status, res.statusText);
     const { prepay_id } = res.data;
-    return await this.getPaySignature(prepay_id, appId);
+    const signature = await this.getPaySignature(prepay_id, appId);
+    const order = new CreateOrderDto({
+      total: totalAmount,
+      createdAt,
+      mchid: '',
+      appid: appId,
+      outTradeNo: randomOrderId,
+      payerOpenId: user.openid,
+      mobile: user.mobile,
+    });
+    const orderCreated = await this.orderService.create(order);
+    return {
+      orderCreated,
+      signature,
+    };
   }
 
   // 微信支付成功回调
-  payCallback(data: WXPaymentCallbackEncryptedResponse): WXPaymentCallbackResponse {
+  async payCallback(data: WXPaymentCallbackEncryptedResponse): Promise<WXPaymentCallbackResponse> {
     if (!data || !data.resource) throw new Error('invalid callback data');
     //https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_5_5.shtml
     const { resource: { ciphertext, nonce, associated_data, algorithm } } = data;
@@ -141,6 +164,31 @@ export class WepayService {
       }, 403);
     }
     console.log('支付成功回调:', result);
+    const { mchid, appid, out_trade_no, transaction_id, trade_type, trade_state, trade_state_desc, bank_type, attach, success_time, payer: { openid }, amount: {
+      total, // 单位为分
+      payer_total,
+      currency,
+      payer_currency,
+    } } = result;
+    const update = new UpdateOrderDto({
+      mchid,
+      transactionId: transaction_id,
+      tradeType: trade_type,
+      tradeState: trade_state,
+      tradeStateDesc: trade_state_desc,
+      bankType: bank_type,
+      successTime: new Date(success_time),
+      total: Number(total / 100).toFixed(2),
+      payerTotal: Number(payer_total / 100).toFixed(2) ?? '0',
+      currency,
+      payerCurrency: payer_currency,
+    });
+    try {
+      await this.orderService.updateByNO(out_trade_no, update);
+    } catch (e) {
+      console.error(e);
+      throw new HttpException('订单回执信息更新失败', 400);
+    }
     return result;
   }
 
