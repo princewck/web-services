@@ -27,7 +27,8 @@
     "migration:prod:revert": "NODE_ENV=production ts-node ./node_modules/typeorm/cli.js migration:revert",
     "seed:dev": "NODE_ENV=development ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
     "seed:prod": "NODE_ENV=production ts-node ./node_modules/typeorm-seeding/dist/cli.js seed",
-    "gen-model": "npx typeorm-model-generator"
+    "gen-model": "npx typeorm-model-generator",
+    "npc": "./npc/start.sh"
   },
   "dependencies": {
     "@alicloud/dysmsapi20170525": "2.0.24",
